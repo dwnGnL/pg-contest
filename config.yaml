@@ -1,0 +1,6 @@
+DB:
+  DSN: host=localhost port=5432 user=postgres password=858585 dbname=pg-contest sslmode=disable
+
+LogLevel: debug
+
+ListenPort: 8083
