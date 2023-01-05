@@ -28,7 +28,7 @@ func (s subscribeSwitcher) ReceiveEvent() {
 
 			err := conn.WriteJSON(resp)
 			if err != nil {
-				goerrors.Log().Warnf("writeJson err:%w", err)
+				goerrors.Log().Warnf("writeJson err:%s", err.Error())
 			}
 			if resp.ContestStatus == models.End {
 				conn.Close()
