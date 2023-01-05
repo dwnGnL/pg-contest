@@ -23,11 +23,17 @@ func (s ServiceImpl) Generate(contestID int64) models.WsResponse {
 	var resp models.WsResponse
 	resp.TotalStep = len(contest.Questions)
 
-	startTime := contest.StartTime
+	layout := "2006-01-02T15:04"
+	startTime, err := time.Parse(layout, contest.StartTime)
+	if err != nil {
+		goerrors.Log().Warnln("err on time.Parse ", err)
+		return models.WsResponse{}
+	}
+	startTimeUnix := startTime.Unix()
 	now := time.Now().Unix()
-	remained := now - startTime
+	remained := now - startTimeUnix
 	if remained < 0 {
-		resp.TotalTime = startTime
+		resp.TotalTime = startTimeUnix
 		resp.CountDown = (remained) * -1
 		resp.ContestStatus = models.Waiting
 		return resp
@@ -38,7 +44,7 @@ func (s ServiceImpl) Generate(contestID int64) models.WsResponse {
 	var totalTime int64
 	for i, v := range contest.Questions {
 		totalTime += v.Time
-		if now-totalTime >= startTime {
+		if now-totalTime >= startTimeUnix {
 			resp.Questions = append(resp.Questions, convertRepQToWsQ(contest.Questions[i]))
 			resp.ActiveQuestionID = v.ID
 			resp.Step = i + 1
@@ -48,7 +54,7 @@ func (s ServiceImpl) Generate(contestID int64) models.WsResponse {
 		break
 	}
 	resp.ContestStatus = models.Start
-	resp.CountDown = (totalTime + startTime) - now
+	resp.CountDown = (totalTime + startTimeUnix) - now
 	resp.TotalStep = len(contest.Questions)
 	if resp.CountDown == 0 {
 		resp.CountDown++
@@ -63,7 +69,7 @@ func (s ServiceImpl) chanWorker(ch chan<- models.WsResponse, contestID int64) {
 	for {
 		resp := s.Generate(contestID)
 		if resp.ContestStatus == models.End {
-			s.repo.UpdateContest(contestID, repository.Contest{IsEnd: true})
+			s.repo.ChangeContestInfo(repository.Contest{ID: contestID, IsEnd: true})
 			ch <- resp
 			close(ch)
 			return
