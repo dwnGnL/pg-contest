@@ -1,5 +1,5 @@
 DB:
-  DSN: host=localhost port=5432 user=postgres password=858585 dbname=pg-contest sslmode=disable
+  DSN: host=ec2-34-192-210-139.compute-1.amazonaws.com port=5432 user=fazrrafiosdjip password=798576b93daa18c57fae4544d99790f424d566dbfa1a729c1859ad9c019eb239 dbname=d1pmr36n4ntdcq sslmode=disable
 
 LogLevel: debug
 
