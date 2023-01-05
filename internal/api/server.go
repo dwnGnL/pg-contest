@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/dwnGnL/pg-contests/internal/api/handler"
 	"net/http"
 
 	"github.com/dwnGnL/pg-contests/internal/api/wshandler"
@@ -36,4 +37,6 @@ func SetupHandlers(core application.Core, cfg *config.Config) GracefulStopFuncWi
 
 func generateAPIV1Routing(gE *gin.RouterGroup) {
 	wshandler.GenRouting(gE)
+	handler.GenRouting(gE)
+
 }

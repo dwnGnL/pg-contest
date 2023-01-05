@@ -106,5 +106,4 @@ func newWsHandler() *wsHandler {
 func GenRouting(r *gin.RouterGroup) {
 	ws := newWsHandler()
 	r.Any("/connect/:contestID", ws.wsContest)
-
 }
