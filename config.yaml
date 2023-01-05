@@ -1,5 +1,5 @@
 DB:
-  DSN: host=localhost port=5432 user=postgres password=postgres dbname=pg-contest sslmode=disable
+  DSN: host=localhost port=5432 user=postgres password=858585 dbname=pg-contest sslmode=disable
 
 LogLevel: debug
 
