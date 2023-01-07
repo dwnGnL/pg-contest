@@ -11,4 +11,5 @@ func GenRouting(r *gin.RouterGroup) {
 	r.GET("/contest/:id/changeStatus", changeStatus)
 	r.DELETE("/contest/:id", deleteContestById)
 	r.PUT("/contest", updateContest)
+	r.POST("/migrate", migrate)
 }

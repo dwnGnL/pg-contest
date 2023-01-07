@@ -17,7 +17,7 @@ type Contest struct {
 	PlayersCount int64      `json:"players_count" binding:"required" gorm:"players_count"`
 	StartTime    string     `json:"start_time" binding:"required" gorm:"column:start_time"`
 	CreatedBy    string     `json:"created_by" gorm:"column:created_by"`
-	Medias       []Media    `json:"medias" gorm:"polymorphic:Owner;constraint:OnDelete:CASCADE;"`
+	Photos       []Photo    `json:"photos" gorm:"polymorphic:Owner;constraint:OnDelete:CASCADE;"`
 	Questions    []Question `json:"questions" gorm:"foreignKey:ContestID;constraint:OnDelete:CASCADE"`
 	Active       bool       `json:"active" gorm:"column:active;default:false"`
 	IsEnd        bool       `json:"is_end" gorm:"column:is_end;default:false"`
@@ -40,9 +40,11 @@ type Answer struct {
 	IsCorrect  bool   `json:"is_correct" gorm:"column:is_correct;default:false"`
 }
 
-type Media struct {
+type Photo struct {
 	ID        int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	Path      string `json:"path" binding:"required" gorm:"column:path"`
+	FileName  string `json:"file_name" binding:"required" gorm:"column:file_name"`
+	Uploaded  bool   `json:"uploaded" gorm:"column:uploaded;default:false"`
+	Link      string `json:"link" gorm:"column:link"`
 	OwnerID   int64  `json:"owner_id" gorm:"column:owner_id"`
 	OwnerType string `json:"owner_type" gorm:"column:owner_type"`
 }
@@ -98,7 +100,7 @@ func (c *Contest) Started() (bool, error) {
 
 func (c *Contest) BeforeDelete(tx *gorm.DB) (err error) {
 	fmt.Println("BEFORE DELETE---------------------", c.ID, "---", c.StartTime)
-	err = tx.Where("owner_id = ? and owner_type = ?", c.ID, "contests").Delete(&Media{}).Error
+	err = tx.Where("owner_id = ? and owner_type = ?", c.ID, "contests").Delete(&Photo{}).Error
 	if err != nil {
 		return err
 	}
