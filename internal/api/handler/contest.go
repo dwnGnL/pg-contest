@@ -1,10 +1,7 @@
 package handler
 
 import (
-	"fmt"
 	"github.com/dwnGnL/pg-contests/internal/application"
-	"github.com/dwnGnL/pg-contests/internal/cmd"
-	"github.com/dwnGnL/pg-contests/internal/config"
 	"github.com/dwnGnL/pg-contests/internal/repository"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
 	"github.com/gin-gonic/gin"
@@ -146,9 +143,13 @@ func changeStatus(c *gin.Context) {
 
 func migrate(c *gin.Context) {
 
-	cfg := config.FromFile("./config.yaml")
-	fmt.Println(cfg)
-	err := cmd.StartMigrate(cfg)
+	app, err := application.GetAppFromRequest(c)
+	if err != nil {
+		goerrors.Log().Warn("fatal err: %w", err)
+		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+	err = app.Migrate()
 	if err != nil {
 		goerrors.Log().WithError(err).Error("migrate error")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "migrate error: " + err.Error()})

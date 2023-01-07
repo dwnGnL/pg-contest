@@ -14,6 +14,7 @@ type repositoryIter interface {
 	DeleteContest(contest repository.Contest) error
 	GetContest(contestID int64) (*repository.Contest, error)
 	GetUserTikets(userID, tiketID int64) (*repository.UserTickets, error)
+	Migrate() error
 }
 
 type ServiceImpl struct {
@@ -105,6 +106,14 @@ func (s ServiceImpl) DeleteContest(contestID int64) error {
 		return err
 	}
 	err = s.repo.DeleteContest(*contest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s ServiceImpl) Migrate() error {
+	err := s.repo.Migrate()
 	if err != nil {
 		return err
 	}
