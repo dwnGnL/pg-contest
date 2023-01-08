@@ -14,7 +14,7 @@ type Contest struct {
 	ID           int64      `json:"id" gorm:"column:id;primary_key;autoIncrement"`
 	Title        string     `json:"title" binding:"required" gorm:"column:title"`
 	Price        float64    `json:"price" binding:"required" gorm:"column:price"`
-	PlayersCount int64      `json:"players_count" binding:"required" gorm:"players_count"`
+	PlayersCount *int64     `json:"players_count" gorm:"players_count"`
 	StartTime    string     `json:"start_time" binding:"required" gorm:"column:start_time"`
 	CreatedBy    string     `json:"created_by" gorm:"column:created_by"`
 	Photos       []Photo    `json:"photos" gorm:"polymorphic:Owner;constraint:OnDelete:CASCADE;"`
@@ -42,7 +42,7 @@ type Answer struct {
 
 type Photo struct {
 	ID        int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	FileName  string `json:"file_name" binding:"required" gorm:"column:file_name"`
+	FileName  string `json:"fileName" binding:"required" gorm:"column:file_name"`
 	Uploaded  bool   `json:"uploaded" gorm:"column:uploaded;default:false"`
 	Link      string `json:"link" gorm:"column:link"`
 	OwnerID   int64  `json:"owner_id" gorm:"column:owner_id"`
@@ -53,6 +53,14 @@ type UserTickets struct {
 	UserID    int64 `gorm:"column:user_id"`
 	ContestID int64 `gorm:"column:contest_id"`
 	Canseled  bool  `gorm:"column:canseled;default:false"`
+}
+
+type ErrorResponse struct {
+	Error ErrorStruct `json:"error"`
+}
+
+type ErrorStruct struct {
+	Message string `json:"message,omitempty"`
 }
 
 func (c *Contest) Validate() error {

@@ -10,10 +10,12 @@ import (
 )
 
 func createContest(c *gin.Context) {
+	errorModel := repository.ErrorResponse{}
 	var request repository.Contest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		goerrors.Log().WithError(err).Error("bind request error")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bind request error: " + err.Error()})
+		errorModel.Error.Message = "bind request error: " + err.Error()
+		c.JSON(http.StatusBadRequest, errorModel)
 		return
 	}
 	app, err := application.GetAppFromRequest(c)
@@ -26,14 +28,15 @@ func createContest(c *gin.Context) {
 	contest, err := app.CreateContest(request)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("create contest error")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "create contest error: " + err.Error()})
+		errorModel.Error.Message = "create contest error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
 		return
 	}
 	c.JSON(http.StatusOK, contest)
 }
 
 func getAllContest(c *gin.Context) {
-
+	errorModel := repository.ErrorResponse{}
 	app, err := application.GetAppFromRequest(c)
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
@@ -44,13 +47,15 @@ func getAllContest(c *gin.Context) {
 	contests, err := app.GetAllContest()
 	if err != nil {
 		goerrors.Log().WithError(err).Error("get all contest error")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "get all contest error: " + err.Error()})
+		errorModel.Error.Message = "get all contest error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
 		return
 	}
 	c.JSON(http.StatusOK, contests)
 }
 
 func getContestById(c *gin.Context) {
+	errorModel := repository.ErrorResponse{}
 	app, err := application.GetAppFromRequest(c)
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
@@ -67,13 +72,15 @@ func getContestById(c *gin.Context) {
 	contest, err := app.GetContest(contestID)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("get contest error")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "get contest error: " + err.Error()})
+		errorModel.Error.Message = "get contest error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
 		return
 	}
 	c.JSON(http.StatusOK, contest)
 }
 
 func deleteContestById(c *gin.Context) {
+	errorModel := repository.ErrorResponse{}
 	app, err := application.GetAppFromRequest(c)
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
@@ -90,17 +97,20 @@ func deleteContestById(c *gin.Context) {
 	err = app.DeleteContest(contestID)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("delete contest error")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "delete contest error: " + err.Error()})
+		errorModel.Error.Message = "delete contest error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Success"})
 }
 
 func updateContest(c *gin.Context) {
+	errorModel := repository.ErrorResponse{}
 	var request repository.Contest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		goerrors.Log().WithError(err).Error("bind request error")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bind request error: " + err.Error()})
+		errorModel.Error.Message = "bind request error: " + err.Error()
+		c.JSON(http.StatusBadRequest, errorModel)
 		return
 	}
 	app, err := application.GetAppFromRequest(c)
@@ -120,6 +130,7 @@ func updateContest(c *gin.Context) {
 }
 
 func changeStatus(c *gin.Context) {
+	errorModel := repository.ErrorResponse{}
 	app, err := application.GetAppFromRequest(c)
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
@@ -135,13 +146,15 @@ func changeStatus(c *gin.Context) {
 	err = app.ChangeStatus(contestID)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("contest ChangeStatus error")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "contest ChangeStatus error: " + err.Error()})
+		errorModel.Error.Message = "contest ChangeStatus error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Success"})
 }
 
 func migrate(c *gin.Context) {
+	errorModel := repository.ErrorResponse{}
 
 	app, err := application.GetAppFromRequest(c)
 	if err != nil {
@@ -152,7 +165,8 @@ func migrate(c *gin.Context) {
 	err = app.Migrate()
 	if err != nil {
 		goerrors.Log().WithError(err).Error("migrate error")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "migrate error: " + err.Error()})
+		errorModel.Error.Message = "migrate error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Success"})
