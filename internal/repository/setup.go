@@ -24,11 +24,16 @@ func (r RepoImpl) Migrate() error {
 		(*Contest)(nil),
 		(*Question)(nil),
 		(*Answer)(nil),
-		(*Media)(nil),
+		(*Photo)(nil),
 		(*UserTickets)(nil),
 	} {
 		dbSilent := r.db.Session(&gorm.Session{Logger: logger.Default.LogMode(logger.Silent)})
-		err := dbSilent.AutoMigrate(model)
+
+		err := dbSilent.Migrator().DropTable(model)
+		if err != nil {
+			return err
+		}
+		err = dbSilent.AutoMigrate(model)
 		if err != nil {
 			return err
 		}

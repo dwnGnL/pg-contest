@@ -9,7 +9,7 @@ func (r RepoImpl) CreateContest(contest Contest) (*Contest, error) {
 }
 
 func (r RepoImpl) DeleteContest(contest Contest) error {
-	err := r.db.Select("Medias").Delete(&contest).Error
+	err := r.db.Select("Photos").Delete(&contest).Error
 	if err != nil {
 		return err
 	}
@@ -18,7 +18,7 @@ func (r RepoImpl) DeleteContest(contest Contest) error {
 
 func (r RepoImpl) GetAllContest() (*[]Contest, error) {
 	contest := new([]Contest)
-	err := r.db.Preload("Questions.Answers").Preload("Medias").Find(&contest).Error
+	err := r.db.Preload("Questions.Answers").Preload("Photos").Find(&contest).Error
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (r RepoImpl) GetAllContest() (*[]Contest, error) {
 
 func (r RepoImpl) GetContest(contestID int64) (*Contest, error) {
 	contest := new(Contest)
-	err := r.db.Preload("Questions.Answers").Preload("Medias").Find(&contest, contestID).Error
+	err := r.db.Preload("Questions.Answers").Preload("Photos").Find(&contest, contestID).Error
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (r RepoImpl) GetContest(contestID int64) (*Contest, error) {
 }
 
 func (r RepoImpl) UpdateContest(contest Contest) (*Contest, error) {
-	err := r.db.Select("Medias").Delete(&contest).Error
+	err := r.db.Select("Photos").Delete(&contest).Error
 	if err != nil {
 		return nil, err
 	}
