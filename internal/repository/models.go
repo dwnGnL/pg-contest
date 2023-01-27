@@ -4,11 +4,25 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"time"
 )
 
 var layout = "2006-01-02T15:04"
+
+type UserContestResp struct {
+	ID             int64          `json:"id" gorm:"column:id"`
+	Title          string         `json:"title" gorm:"column:title"`
+	Price          float64        `json:"price" gorm:"column:price"`
+	StartTime      string         `json:"start_time" gorm:"column:start_time"`
+	PhotosLinks    pq.StringArray `json:"photos_links" gorm:"column:photos_links"`
+	QuestionsCount int64          `json:"questions_count" gorm:"column:questions_count"`
+	ContestLength  int64          `json:"contest_length" gorm:"column:contest_length"`
+	IsEnd          bool           `json:"is_end" gorm:"column:is_end"`
+	PurchaseDate   *time.Time     `json:"purchase_date" gorm:"column:purchase_date"`
+	PurchasePrice  *float64       `json:"purchase_price" gorm:"column:purchase_price"`
+}
 
 type Contest struct {
 	ID           int64      `json:"id" gorm:"column:id;primary_key;autoIncrement"`
@@ -21,6 +35,7 @@ type Contest struct {
 	Questions    []Question `json:"questions" gorm:"foreignKey:ContestID;constraint:OnDelete:CASCADE"`
 	Active       bool       `json:"active" gorm:"column:active;default:false"`
 	IsEnd        bool       `json:"is_end" gorm:"column:is_end;default:false"`
+	CreatedAt    *time.Time `json:"created_at" gorm:"autoCreateTime"`
 }
 
 type Question struct {
@@ -35,18 +50,33 @@ type Question struct {
 
 type Answer struct {
 	ID         int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	QuestionID int64  `json:"question_id" binding:"required" gorm:"column:contest_id"`
+	QuestionID int64  `json:"question_id" binding:"required" gorm:"column:question_id"`
 	Title      string `json:"title" binding:"required" gorm:"column:title"`
 	IsCorrect  bool   `json:"is_correct" gorm:"column:is_correct;default:false"`
 }
 
 type Photo struct {
 	ID        int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	FileName  string `json:"fileName" binding:"required" gorm:"column:file_name"`
-	Uploaded  bool   `json:"uploaded" gorm:"column:uploaded;default:false"`
-	Link      string `json:"link" gorm:"column:link"`
-	OwnerID   int64  `json:"owner_id" gorm:"column:owner_id"`
-	OwnerType string `json:"owner_type" gorm:"column:owner_type"`
+	FileName  string `json:"file_name,omitempty" binding:"required" gorm:"column:file_name"`
+	Uploaded  bool   `json:"uploaded,omitempty" gorm:"column:uploaded;default:false"`
+	Link      string `json:"link,omitempty" gorm:"column:link"`
+	OwnerID   int64  `json:"owner_id,omitempty" gorm:"column:owner_id"`
+	OwnerType string `json:"owner_type,omitempty" gorm:"column:owner_type"`
+}
+
+type UserContests struct {
+	UserID    int64      `json:"user_id" gorm:"column:user_id;primaryKey"`
+	ContestID int64      `json:"contest_id" gorm:"column:contest_id;primaryKey"`
+	Price     float64    `json:"price" gorm:"column:price"`
+	CreatedAt *time.Time `json:"created_at" gorm:"autoCreateTime"`
+}
+
+type UserAnswers struct {
+	UserID     int64 `json:"user_id" gorm:"column:user_id;primaryKey"`
+	ContestID  int64 `json:"contest_id" gorm:"column:contest_id;primaryKey"`
+	QuestionID int64 `json:"question_id" gorm:"column:question_id;primaryKey"`
+	AnswerID   int64 `json:"answer_id" gorm:"column:answer_id;primaryKey"`
+	Time       int64 `json:"time" gorm:"column:time"`
 }
 
 type UserTickets struct {
@@ -133,4 +163,18 @@ func (c *Contest) BeforeCreate(tx *gorm.DB) (err error) {
 		return err
 	}
 	return
+}
+
+type NullString64Array struct {
+	StringArray pq.StringArray
+	Valid       bool
+}
+
+func (n *NullString64Array) Scan(value interface{}) error {
+	if value == nil {
+		n.StringArray, n.Valid = nil, false
+		return nil
+	}
+	n.Valid = true
+	return pq.Array(&n.StringArray).Scan(value)
 }

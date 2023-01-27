@@ -26,6 +26,8 @@ func (r RepoImpl) Migrate() error {
 		(*Answer)(nil),
 		(*Photo)(nil),
 		(*UserTickets)(nil),
+		(*UserContests)(nil),
+		(*UserAnswers)(nil),
 	} {
 		dbSilent := r.db.Session(&gorm.Session{Logger: logger.Default.LogMode(logger.Silent)})
 
