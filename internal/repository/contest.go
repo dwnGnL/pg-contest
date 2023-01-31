@@ -37,7 +37,7 @@ func (r RepoImpl) GetAllContestByUserID(userID int64) (*[]UserContestResp, error
 			//находим количество уникальных вопросов для каждого конкурса
 			"COUNT(DISTINCT q.id) AS questions_count,"+
 			//суммируем времена ответов на каждый из вопросов конкурса и дели на количесво фоток конкурса для устранения повторного суммирования, при делении обрабатываем случаё деления на 0
-			"SUM(COALESCE(q.time, 0)) / COALESCE(NULLIF(COUNT(DISTINCT p.id), 0), 1) AS contest_time,"+
+			"CAST(SUM(COALESCE(q.time, 0)) / COALESCE(NULLIF(COUNT(DISTINCT p.id), 0), 1) AS BIGINT) AS contest_length,"+
 			//тут мы находим все линки ан фотки каждого конкурса, для случая когда фоток у конкурса нет то возвращаем {} инча Scan не сработает
 			"CASE WHEN COUNT(DISTINCT p.id) = 0 THEN '{}' else ARRAY_AGG(DISTINCT p.link) END AS photos_links,"+
 			"uc.created_at AS purchase_date,"+
@@ -58,6 +58,15 @@ func (r RepoImpl) GetAllContestByUserID(userID int64) (*[]UserContestResp, error
 func (r RepoImpl) GetContest(contestID int64) (*Contest, error) {
 	contest := new(Contest)
 	err := r.db.Preload("Questions.Answers").Preload("Photos").Find(&contest, contestID).Error
+	if err != nil {
+		return nil, err
+	}
+	return contest, nil
+}
+
+func (r RepoImpl) GetContestPrice(contestID int64) (*Contest, error) {
+	contest := new(Contest)
+	err := r.db.Table("contests c").Select("id, price").Where("id = ?", contestID).Scan(&contest).Error
 	if err != nil {
 		return nil, err
 	}

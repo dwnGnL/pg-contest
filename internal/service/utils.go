@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 )
 
-func sendRequest(method, uri string, reader io.Reader, respStruct interface{}, headers *map[string]string) error {
-	uri += "/client/quiz/withdraw-balance"
+func (s ServiceImpl) SendRequest(method string, reader io.Reader, respStruct interface{}, headers *map[string]string) error {
+	uri := s.conf.ApiURL + "/client/quiz/withdraw-balance"
 	req, err := http.NewRequest(method, uri, reader)
 	if err != nil {
 		return err
@@ -19,7 +18,7 @@ func sendRequest(method, uri string, reader io.Reader, respStruct interface{}, h
 		Timeout: 15 * time.Second,
 	}
 
-	// req.Header.Set("Content-Type")
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	if headers != nil {
 		for s, v := range *headers {
 			req.Header.Set(s, v)
@@ -36,19 +35,16 @@ func sendRequest(method, uri string, reader io.Reader, respStruct interface{}, h
 			respStruct = resp.Body
 			return nil
 		}
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		if respStruct != nil {
 			err = json.Unmarshal(body, &respStruct)
 			if err != nil {
 				return err
 			}
 		}
-
 	} else {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return errors.New(string(body))
 	}
-
 	return nil
-
 }

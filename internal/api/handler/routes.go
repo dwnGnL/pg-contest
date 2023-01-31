@@ -7,7 +7,7 @@ import (
 func GenRouting(r *gin.RouterGroup) {
 	r.POST("/contest", createContest)
 	r.GET("/contests", getAllContest)
-	r.GET("/contests/:userID", getAllContestByUserID)
+	r.GET("/user/contests", getAllContestByUserID)
 	r.GET("/contest/:id", getContestById)
 	r.GET("/contest/:id/changeStatus", changeStatus)
 	r.DELETE("/contest/:id", deleteContestById)

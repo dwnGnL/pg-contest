@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/dwnGnL/pg-contests/internal/application"
+	"github.com/dwnGnL/pg-contests/internal/middleware"
 	"github.com/dwnGnL/pg-contests/internal/repository"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
 	"github.com/gin-gonic/gin"
@@ -62,13 +63,21 @@ func getAllContestByUserID(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadGateway)
 		return
 	}
-	userID, err := strconv.ParseInt(c.Param("userID"), 10, 64)
+	/*
+		userID, err := strconv.ParseInt(c.Param("userID"), 10, 64)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}*/
+
+	tokenDetails, err := middleware.ExtractTokenMetadata(c)
 	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	//todo: request.CreatedBy = user_id
-	contests, err := app.GetAllContestByUserID(userID)
+
+	contests, err := app.GetAllContestByUserID(tokenDetails.ID)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("get all contest by userID error")
 		errorModel.Error.Message = "get all contest by userID error: " + err.Error()
@@ -118,6 +127,7 @@ func deleteContestById(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
+
 	err = app.DeleteContest(contestID)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("delete contest error")
@@ -130,16 +140,25 @@ func deleteContestById(c *gin.Context) {
 
 func subscribeContestById(c *gin.Context) {
 	var (
-		app               application.Core
-		errorModel        = repository.ErrorResponse{}
-		jwtToken          string
-		userID, contestID int64
-		err               error
+		app        application.Core
+		errorModel = repository.ErrorResponse{}
+		jwtToken   string
+		contestID  int64
+		err        error
 	)
 	app, err = application.GetAppFromRequest(c)
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
 		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+
+	jwtToken = c.Request.Header.Get("Authorization")
+
+	tokenDetails, err := middleware.ExtractTokenMetadata(c)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
@@ -149,7 +168,7 @@ func subscribeContestById(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	err = app.SubscribeContest(contestID, jwtToken, userID)
+	err = app.SubscribeContest(contestID, jwtToken, tokenDetails.ID)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("subscribe contest error")
 		errorModel.Error.Message = "subscribe contest error: " + err.Error()

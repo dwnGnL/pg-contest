@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/dwnGnL/pg-contests/internal/config"
 	"github.com/dwnGnL/pg-contests/internal/repository"
+	"github.com/dwnGnL/pg-contests/lib/goerrors"
 )
 
 type repositoryIter interface {
@@ -16,6 +17,7 @@ type repositoryIter interface {
 	ChangeContestInfo(contest repository.Contest) (*repository.Contest, error)
 	DeleteContest(contest repository.Contest) error
 	GetContest(contestID int64) (*repository.Contest, error)
+	GetContestPrice(contestID int64) (*repository.Contest, error)
 	GetUserTikets(userID, tiketID int64) (*repository.UserTickets, error)
 	Migrate() error
 	SubscribeContest(contest repository.Contest, userID int64) error
@@ -134,17 +136,14 @@ func (s ServiceImpl) Migrate() error {
 
 func (s ServiceImpl) SubscribeContest(contestID int64, jwtToken string, userID int64) error {
 	var (
-		bearer string
 		header map[string]string
 		res    interface{}
 		err    error
 	)
 
-	bearer = "Bearer " + jwtToken
+	header = map[string]string{"Authorization": jwtToken}
 
-	header = map[string]string{"Authorization": bearer}
-
-	contest, err := s.repo.GetContest(contestID)
+	contest, err := s.repo.GetContestPrice(contestID)
 	if err != nil {
 		return err
 	}
@@ -156,10 +155,12 @@ func (s ServiceImpl) SubscribeContest(contestID int64, jwtToken string, userID i
 	if err != nil {
 		return err
 	}
-	if err = sendRequest("POST", s.conf.ApiURL, bytes.NewBuffer(body), &res, &header); err != nil {
+
+	goerrors.Log().Info("contest:", contest)
+	if err = s.SendRequest("POST", bytes.NewBuffer(body), &res, &header); err != nil {
 		return err
 	}
-	err := s.repo.SubscribeContest(contest, userID)
+	err = s.repo.SubscribeContest(*contest, userID)
 	if err != nil {
 		return err
 	}
