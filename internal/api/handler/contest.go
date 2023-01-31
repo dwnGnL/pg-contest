@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/dwnGnL/pg-contests/internal/application"
+	"github.com/dwnGnL/pg-contests/internal/middleware"
 	"github.com/dwnGnL/pg-contests/internal/repository"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
 	"github.com/gin-gonic/gin"
@@ -54,6 +55,38 @@ func getAllContest(c *gin.Context) {
 	c.JSON(http.StatusOK, contests)
 }
 
+func getAllContestByUserID(c *gin.Context) {
+	errorModel := repository.ErrorResponse{}
+	app, err := application.GetAppFromRequest(c)
+	if err != nil {
+		goerrors.Log().Warn("fatal err: %w", err)
+		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+	/*
+		userID, err := strconv.ParseInt(c.Param("userID"), 10, 64)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}*/
+
+	tokenDetails, err := middleware.ExtractTokenMetadata(c)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	contests, err := app.GetAllContestByUserID(tokenDetails.ID)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("get all contest by userID error")
+		errorModel.Error.Message = "get all contest by userID error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
+		return
+	}
+	c.JSON(http.StatusOK, contests)
+}
+
 func getContestById(c *gin.Context) {
 	errorModel := repository.ErrorResponse{}
 	app, err := application.GetAppFromRequest(c)
@@ -94,10 +127,51 @@ func deleteContestById(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
+
 	err = app.DeleteContest(contestID)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("delete contest error")
 		errorModel.Error.Message = "delete contest error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Success"})
+}
+
+func subscribeContestById(c *gin.Context) {
+	var (
+		app        application.Core
+		errorModel = repository.ErrorResponse{}
+		jwtToken   string
+		contestID  int64
+		err        error
+	)
+	app, err = application.GetAppFromRequest(c)
+	if err != nil {
+		goerrors.Log().Warn("fatal err: %w", err)
+		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+
+	jwtToken = c.Request.Header.Get("Authorization")
+
+	tokenDetails, err := middleware.ExtractTokenMetadata(c)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	contestID, err = strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("Parse contest id error")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	err = app.SubscribeContest(contestID, jwtToken, tokenDetails.ID)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("subscribe contest error")
+		errorModel.Error.Message = "subscribe contest error: " + err.Error()
 		c.JSON(http.StatusInternalServerError, errorModel)
 		return
 	}

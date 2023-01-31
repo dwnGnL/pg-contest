@@ -1,6 +1,10 @@
 DB:
-  DSN: host=ec2-52-20-166-21.compute-1.amazonaws.com port=5432 user=ihdtaxscotsdyr password=bad79172cfb7ac569f344d4703381a3c72dea67b7d3fc3b67768b2c94f0474c6 dbname=dflmfk9vioe9b0 sslmode=require
+  DSN: host=localhost port=5432 user=postgres password=postgres dbname=pg-contest sslmode=disable
 
 LogLevel: debug
 
 ListenPort: 8083
+
+ApiURL: https://dev.api-parviz.com/api/
+
+PrivKey: private_key_sec

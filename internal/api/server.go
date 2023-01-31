@@ -3,11 +3,8 @@ package api
 import (
 	"context"
 	"fmt"
-	"log"
-	"net/http"
-	"os"
-
 	"github.com/dwnGnL/pg-contests/internal/api/handler"
+	"net/http"
 
 	"github.com/dwnGnL/pg-contests/internal/api/wshandler"
 	"github.com/dwnGnL/pg-contests/internal/application"
@@ -25,13 +22,17 @@ func SetupHandlers(core application.Core, cfg *config.Config) GracefulStopFuncWi
 	apiv1 := c.Group("/api/v1/")
 	// apiv1.Use() добавить проверку токена
 	generateAPIV1Routing(apiv1)
-	port := os.Getenv("PORT")
+	/*port := os.Getenv("ListenPort")
 
 	if port == "" {
 		log.Fatal("$PORT must be set")
 	}
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", port),
+		Handler: c,
+	}*/
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", cfg.ListenPort),
 		Handler: c,
 	}
 	go func() {

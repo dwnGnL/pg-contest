@@ -1,20 +1,26 @@
 package service
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/dwnGnL/pg-contests/internal/config"
 	"github.com/dwnGnL/pg-contests/internal/repository"
+	"github.com/dwnGnL/pg-contests/lib/goerrors"
 )
 
 type repositoryIter interface {
 	GetAllContest() (*[]repository.Contest, error)
+	GetAllContestByUserID(userID int64) (*[]repository.UserContestResp, error)
 	CreateContest(contest repository.Contest) (*repository.Contest, error)
 	UpdateContest(contest repository.Contest) (*repository.Contest, error)
 	ChangeContestInfo(contest repository.Contest) (*repository.Contest, error)
 	DeleteContest(contest repository.Contest) error
 	GetContest(contestID int64) (*repository.Contest, error)
+	GetContestPrice(contestID int64) (*repository.Contest, error)
 	GetUserTikets(userID, tiketID int64) (*repository.UserTickets, error)
 	Migrate() error
+	SubscribeContest(contest repository.Contest, userID int64) error
 }
 
 type ServiceImpl struct {
@@ -58,6 +64,14 @@ func (s ServiceImpl) CheckAndReturnContestByUserID(contestID, userID int64) (*re
 
 func (s ServiceImpl) GetAllContest() (*[]repository.Contest, error) {
 	contests, err := s.repo.GetAllContest()
+	if err != nil {
+		return nil, err
+	}
+	return contests, nil
+}
+
+func (s ServiceImpl) GetAllContestByUserID(userID int64) (*[]repository.UserContestResp, error) {
+	contests, err := s.repo.GetAllContestByUserID(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +128,39 @@ func (s ServiceImpl) DeleteContest(contestID int64) error {
 
 func (s ServiceImpl) Migrate() error {
 	err := s.repo.Migrate()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s ServiceImpl) SubscribeContest(contestID int64, jwtToken string, userID int64) error {
+	var (
+		header map[string]string
+		res    interface{}
+		err    error
+	)
+
+	header = map[string]string{"Authorization": jwtToken}
+
+	contest, err := s.repo.GetContestPrice(contestID)
+	if err != nil {
+		return err
+	}
+	req := struct {
+		Amount float64 `json:"amount"`
+	}{contest.Price}
+
+	body, err := json.Marshal(&req)
+	if err != nil {
+		return err
+	}
+
+	goerrors.Log().Info("contest:", contest)
+	if err = s.SendRequest("POST", bytes.NewBuffer(body), &res, &header); err != nil {
+		return err
+	}
+	err = s.repo.SubscribeContest(*contest, userID)
 	if err != nil {
 		return err
 	}
