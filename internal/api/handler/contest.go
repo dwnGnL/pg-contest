@@ -44,8 +44,9 @@ func getAllContest(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadGateway)
 		return
 	}
+	pagination := repository.GetPaginateSettings(c.Request)
 	//todo: request.CreatedBy = user_id
-	contests, err := app.GetAllContest()
+	contests, err := app.GetAllContest(pagination)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("get all contest error")
 		errorModel.Error.Message = "get all contest error: " + err.Error()
@@ -77,7 +78,9 @@ func getAllContestByUserID(c *gin.Context) {
 		return
 	}
 
-	contests, err := app.GetAllContestByUserID(tokenDetails.ID)
+	pagination := repository.GetPaginateSettings(c.Request)
+
+	contests, err := app.GetAllContestByUserID(tokenDetails.ID, pagination)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("get all contest by userID error")
 		errorModel.Error.Message = "get all contest by userID error: " + err.Error()

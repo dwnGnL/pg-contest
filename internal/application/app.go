@@ -6,8 +6,8 @@ import (
 )
 
 type Core interface {
-	GetAllContest() (*[]repository.Contest, error)
-	GetAllContestByUserID(userID int64) (*[]repository.UserContestResp, error)
+	GetAllContest(pagination *repository.Pagination) (*repository.Pagination, error)
+	GetAllContestByUserID(userID int64, pagination *repository.Pagination) (*repository.Pagination, error)
 	GetContest(contestID int64) (*repository.Contest, error)
 	DeleteContest(contestID int64) error
 	CreateContest(contest repository.Contest) (*repository.Contest, error)
