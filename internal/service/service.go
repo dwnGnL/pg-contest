@@ -21,6 +21,7 @@ type repositoryIter interface {
 	GetUserTikets(userID, tiketID int64) (*repository.UserTickets, error)
 	Migrate() error
 	SubscribeContest(contest repository.Contest, userID int64) error
+	ContestAvailability(contestID int64, userID int64) (*repository.Contest, error)
 }
 
 type ServiceImpl struct {
@@ -143,7 +144,7 @@ func (s ServiceImpl) SubscribeContest(contestID int64, jwtToken string, userID i
 
 	header = map[string]string{"Authorization": jwtToken}
 
-	contest, err := s.repo.GetContestPrice(contestID)
+	contest, err := s.repo.ContestAvailability(contestID, userID)
 	if err != nil {
 		return err
 	}

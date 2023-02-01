@@ -1,5 +1,7 @@
 package repository
 
+import "errors"
+
 func (r RepoImpl) CreateContest(contest Contest) (*Contest, error) {
 	err := r.db.Create(&contest).Error
 	if err != nil {
@@ -81,22 +83,14 @@ func (r RepoImpl) GetAllContestByUserID(userID int64, pagination *Pagination) (*
 	return pagination, nil
 }
 
-func (r RepoImpl) GetContest(contestID int64) (*Contest, error) {
-	contest := new(Contest)
-	err := r.db.Preload("Questions.Answers").Preload("Photos").Find(&contest, contestID).Error
-	if err != nil {
-		return nil, err
-	}
-	return contest, nil
+func (r RepoImpl) GetContest(contestID int64) (contest *Contest, err error) {
+	err = r.db.Preload("Questions.Answers").Preload("Photos").Last(&contest, contestID).Error
+	return
 }
 
-func (r RepoImpl) GetContestPrice(contestID int64) (*Contest, error) {
-	contest := new(Contest)
-	err := r.db.Table("contests c").Select("id, price").Where("id = ?", contestID).Scan(&contest).Error
-	if err != nil {
-		return nil, err
-	}
-	return contest, nil
+func (r RepoImpl) GetContestPrice(contestID int64) (contest *Contest, err error) {
+	err = r.db.Table("contests c").Select("id, price").Where("id = ?", contestID).Scan(&contest).Error
+	return
 }
 
 func (r RepoImpl) UpdateContest(contest Contest) (*Contest, error) {
@@ -119,15 +113,27 @@ func (r RepoImpl) ChangeContestInfo(contest Contest) (*Contest, error) {
 	return &contest, nil
 }
 
-func (r RepoImpl) SubscribeContest(contest Contest, userID int64) error {
+func (r RepoImpl) SubscribeContest(contest Contest, userID int64) (err error) {
 	userContest := UserContests{
 		UserID:    userID,
 		ContestID: contest.ID,
 		Price:     contest.Price,
 	}
-	err := r.db.Create(&userContest).Error
+	return r.db.Create(&userContest).Error
+}
+
+func (r RepoImpl) ContestAvailability(contestID int64, userID int64) (contest *Contest, err error) {
+
+	var userContests int64
+	err = r.db.Table("user_contests").Where("user_id = ? AND contest_id = ?", userID, contestID).Count(&userContests).Error
 	if err != nil {
-		return err
+		return
 	}
-	return nil
+	if userContests != 0 {
+		err = errors.New("already subscribed earlier")
+		return
+	}
+
+	err = r.db.Table("contests").Where("active AND NOT is_end AND id = ?", contestID).Last(&contest).Error
+	return
 }
