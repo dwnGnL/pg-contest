@@ -74,7 +74,8 @@ func getAllContestByUserID(c *gin.Context) {
 	tokenDetails, err := middleware.ExtractTokenMetadata(c)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
-		c.AbortWithStatus(http.StatusUnauthorized)
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
 		return
 	}
 
@@ -161,7 +162,8 @@ func subscribeContestById(c *gin.Context) {
 	tokenDetails, err := middleware.ExtractTokenMetadata(c)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
-		c.AbortWithStatus(http.StatusUnauthorized)
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
 		return
 	}
 
