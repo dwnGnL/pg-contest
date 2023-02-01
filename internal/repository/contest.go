@@ -16,19 +16,39 @@ func (r RepoImpl) DeleteContest(contest Contest) error {
 	return nil
 }
 
-func (r RepoImpl) GetAllContest() (*[]Contest, error) {
-	contest := new([]Contest)
-	err := r.db.Preload("Questions.Answers").Preload("Photos").Find(&contest).Error
+func (r RepoImpl) GetAllContest(pagination *Pagination) (*Pagination, error) {
+
+	var totalRows int64
+	err := r.db.Model(Contest{}).Count(&totalRows).Error
 	if err != nil {
 		return nil, err
 	}
-	return contest, nil
+
+	contest := new([]Contest)
+	err = r.db.Scopes(Paginate(pagination)).Preload("Questions.Answers").Preload("Photos").Find(&contest).Error
+	if err != nil {
+		return nil, err
+	}
+	pagination.Records = contest
+	pagination.TotalRows = totalRows
+	pagination.TotalPages = int(pagination.TotalRows / int64(pagination.Limit))
+	if pagination.TotalRows%int64(pagination.Limit) > 0 {
+		pagination.TotalPages++
+	}
+	return pagination, nil
 }
 
-func (r RepoImpl) GetAllContestByUserID(userID int64) (*[]UserContestResp, error) {
+func (r RepoImpl) GetAllContestByUserID(userID int64, pagination *Pagination) (*Pagination, error) {
+
+	var totalRows int64
+	err := r.db.Model(Contest{}).Where("NOT is_end and active").Count(&totalRows).Error
+	if err != nil {
+		return nil, err
+	}
+
 	userContestResp := new([]UserContestResp)
 	//запрос для отображения всех конкурсов и с отображением наверху конкурсов которые купил данный участник (когда и за сколько)
-	err := r.db.Table("contests c").
+	err = r.db.Table("contests c").
 		Select("c.id AS id,"+
 			"c.title AS title,"+
 			"c.price AS price,"+
@@ -47,12 +67,18 @@ func (r RepoImpl) GetAllContestByUserID(userID int64) (*[]UserContestResp, error
 		Joins("LEFT OUTER JOIN user_contests uc ON  uc.contest_id = c.id AND uc.user_id = ?", userID).
 		Where("NOT c.is_end and c.active").
 		Group("c.title, c.id, uc.created_at, c.price, c.start_time, c.is_end, uc.price").
-		Order("uc.created_at ASC").
+		Order("uc.created_at ASC").Scopes(Paginate(pagination)).
 		Scan(&userContestResp).Error
 	if err != nil {
 		return nil, err
 	}
-	return userContestResp, nil
+	pagination.Records = userContestResp
+	pagination.TotalRows = totalRows
+	pagination.TotalPages = int(pagination.TotalRows / int64(pagination.Limit))
+	if pagination.TotalRows%int64(pagination.Limit) > 0 {
+		pagination.TotalPages++
+	}
+	return pagination, nil
 }
 
 func (r RepoImpl) GetContest(contestID int64) (*Contest, error) {

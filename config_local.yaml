@@ -1,0 +1,10 @@
+DB:
+  DSN: host=localhost port=5432 user=postgres password=postgres dbname=pg-contest sslmode=disable
+
+LogLevel: debug
+
+ListenPort: 8083
+
+ApiURL: https://dev.api-parviz.com/api/
+
+PrivKey: private_key_sec

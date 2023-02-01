@@ -10,8 +10,8 @@ import (
 )
 
 type repositoryIter interface {
-	GetAllContest() (*[]repository.Contest, error)
-	GetAllContestByUserID(userID int64) (*[]repository.UserContestResp, error)
+	GetAllContest(pagination *repository.Pagination) (*repository.Pagination, error)
+	GetAllContestByUserID(userID int64, pagination *repository.Pagination) (*repository.Pagination, error)
 	CreateContest(contest repository.Contest) (*repository.Contest, error)
 	UpdateContest(contest repository.Contest) (*repository.Contest, error)
 	ChangeContestInfo(contest repository.Contest) (*repository.Contest, error)
@@ -62,16 +62,16 @@ func (s ServiceImpl) CheckAndReturnContestByUserID(contestID, userID int64) (*re
 	return contest, nil
 }
 
-func (s ServiceImpl) GetAllContest() (*[]repository.Contest, error) {
-	contests, err := s.repo.GetAllContest()
+func (s ServiceImpl) GetAllContest(pagination *repository.Pagination) (*repository.Pagination, error) {
+	contests, err := s.repo.GetAllContest(pagination)
 	if err != nil {
 		return nil, err
 	}
 	return contests, nil
 }
 
-func (s ServiceImpl) GetAllContestByUserID(userID int64) (*[]repository.UserContestResp, error) {
-	contests, err := s.repo.GetAllContestByUserID(userID)
+func (s ServiceImpl) GetAllContestByUserID(userID int64, pagination *repository.Pagination) (*repository.Pagination, error) {
+	contests, err := s.repo.GetAllContestByUserID(userID, pagination)
 	if err != nil {
 		return nil, err
 	}
