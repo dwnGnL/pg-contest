@@ -75,7 +75,7 @@ type UserAnswers struct {
 	UserID     int64 `json:"user_id" gorm:"column:user_id;primaryKey"`
 	ContestID  int64 `json:"contest_id" gorm:"column:contest_id;primaryKey"`
 	QuestionID int64 `json:"question_id" gorm:"column:question_id;primaryKey"`
-	AnswerID   int64 `json:"answer_id" gorm:"column:answer_id;primaryKey"`
+	AnswerID   int64 `json:"answer_id" gorm:"column:answer_id"`
 	Time       int64 `json:"time" gorm:"column:time"`
 }
 

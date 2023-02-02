@@ -7,6 +7,8 @@ import (
 	"github.com/dwnGnL/pg-contests/internal/config"
 	"github.com/dwnGnL/pg-contests/internal/repository"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
+	"sort"
+	"time"
 )
 
 type repositoryIter interface {
@@ -17,11 +19,13 @@ type repositoryIter interface {
 	ChangeContestInfo(contest repository.Contest) (*repository.Contest, error)
 	DeleteContest(contest repository.Contest) error
 	GetContest(contestID int64) (*repository.Contest, error)
-	GetContestPrice(contestID int64) (*repository.Contest, error)
+	GetContestInfo(contestID int64) (*repository.Contest, error)
 	GetUserTikets(userID, tiketID int64) (*repository.UserTickets, error)
 	Migrate() error
 	SubscribeContest(contest repository.Contest, userID int64) error
 	ContestAvailability(contestID int64, userID int64) (*repository.Contest, error)
+	GetUserContest(contestID int64, userID int64) (*repository.UserContests, error)
+	SubmitAnswer(userAnswer *repository.UserAnswers) (err error)
 }
 
 type ServiceImpl struct {
@@ -52,15 +56,47 @@ func (s ServiceImpl) CheckAndReturnContestByUserID(contestID, userID int64) (*re
 	if !contest.Active {
 		return nil, fmt.Errorf("contest not active")
 	}
-	tiket, err := s.repo.GetUserTikets(userID, contestID)
+	userContest, err := s.repo.GetUserContest(contestID, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	if tiket == nil || tiket.Canseled {
-		return nil, fmt.Errorf("yout tiket is canseled")
+	if userContest == nil {
+		return nil, fmt.Errorf("please subscribe contest to continue")
 	}
 	return contest, nil
+}
+
+func (s ServiceImpl) CalculateTimeForQuestion(contestID, questionID int64) (resTime int64, err error) {
+	contest, err := s.repo.GetContest(contestID)
+	if err != nil {
+		goerrors.Log().Warnln("err on GetContest ", err)
+		return
+	}
+
+	layout := "2006-01-02T15:04"
+	startTime, err := time.Parse(layout, contest.StartTime)
+	if err != nil {
+		goerrors.Log().Warnln("err on time.Parse ", err)
+		return
+	}
+	startTimeUnix := startTime.Unix()
+
+	now := time.Now().Unix() - startTimeUnix
+
+	sort.Slice(contest.Questions, func(i, j int) bool {
+		return contest.Questions[i].Order < contest.Questions[j].Order
+	})
+
+	var totalTime int64
+	for _, v := range contest.Questions {
+		if v.ID == questionID {
+			resTime = now - totalTime
+			return
+		}
+		totalTime += v.Time
+	}
+	return
 }
 
 func (s ServiceImpl) GetAllContest(pagination *repository.Pagination) (*repository.Pagination, error) {
@@ -103,36 +139,29 @@ func (s ServiceImpl) UpdateContest(contest repository.Contest) (*repository.Cont
 	return updatedContest, nil
 }
 
-func (s ServiceImpl) ChangeStatus(contestID int64) error {
+func (s ServiceImpl) ChangeStatus(contestID int64) (err error) {
 	contest, err := s.repo.GetContest(contestID)
 	if err != nil {
-		return err
+		return
 	}
 	_, err = s.repo.ChangeContestInfo(repository.Contest{ID: contestID, Active: !contest.Active})
-	if err != nil {
-		return err
-	}
-	return nil
+	return
 }
 
-func (s ServiceImpl) DeleteContest(contestID int64) error {
+func (s ServiceImpl) DeleteContest(contestID int64) (err error) {
 	contest, err := s.repo.GetContest(contestID)
 	if err != nil {
-		return err
+		return
 	}
-	err = s.repo.DeleteContest(*contest)
-	if err != nil {
-		return err
-	}
-	return nil
+	return s.repo.DeleteContest(*contest)
 }
 
 func (s ServiceImpl) Migrate() error {
-	err := s.repo.Migrate()
-	if err != nil {
-		return err
-	}
-	return nil
+	return s.repo.Migrate()
+}
+
+func (s ServiceImpl) SubmitAnswer(userAnswer *repository.UserAnswers) (err error) {
+	return s.repo.SubmitAnswer(userAnswer)
 }
 
 func (s ServiceImpl) SubscribeContest(contestID int64, jwtToken string, userID int64) error {

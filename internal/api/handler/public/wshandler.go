@@ -1,17 +1,12 @@
-package wshandler
+package public
 
 import (
 	"sync"
 
 	"github.com/dwnGnL/pg-contests/internal/api/models"
-	"github.com/dwnGnL/pg-contests/lib/cachemap"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
 	"github.com/gorilla/websocket"
 )
-
-type wsHandler struct {
-	contestMap *cachemap.CacheMaper[int64, subscribeSwitcher]
-}
 
 type subscribeSwitcher struct {
 	event       <-chan models.WsResponse
