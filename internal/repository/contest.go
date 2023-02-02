@@ -1,6 +1,9 @@
 package repository
 
-import "errors"
+import (
+	"errors"
+	"gorm.io/gorm/clause"
+)
 
 func (r RepoImpl) CreateContest(contest Contest) (*Contest, error) {
 	err := r.db.Create(&contest).Error
@@ -88,8 +91,8 @@ func (r RepoImpl) GetContest(contestID int64) (contest *Contest, err error) {
 	return
 }
 
-func (r RepoImpl) GetContestPrice(contestID int64) (contest *Contest, err error) {
-	err = r.db.Table("contests c").Select("id, price").Where("id = ?", contestID).Scan(&contest).Error
+func (r RepoImpl) GetContestInfo(contestID int64) (contest *Contest, err error) {
+	err = r.db.Table("contests").Where("id = ?", contestID).Scan(&contest).Error
 	return
 }
 
@@ -135,5 +138,31 @@ func (r RepoImpl) ContestAvailability(contestID int64, userID int64) (contest *C
 	}
 
 	err = r.db.Table("contests").Where("active AND NOT is_end AND id = ?", contestID).Last(&contest).Error
+	return
+}
+
+func (r RepoImpl) GetUserContest(contestID int64, userID int64) (userContest *UserContests, err error) {
+	err = r.db.Where("user_id = ? and contest_id = ?", userID, contestID).Find(userContest).Error
+	return
+}
+
+func (r RepoImpl) SubmitAnswer(userAnswer *UserAnswers) (err error) {
+	var count int64
+
+	err = r.db.Where("user_id = ? and contest_id = ? and question_id = ? and answer_id = ?",
+		userAnswer.UserID, userAnswer.ContestID, userAnswer.QuestionID, userAnswer.AnswerID).
+		Count(&count).Error
+	if err != nil {
+		return
+	}
+	//усли участник уже так ответил ранееб не обновляем ничего
+	if count != 0 {
+		return
+	}
+
+	err = r.db.Clauses(clause.OnConflict{
+		//Columns:   []clause.Column{{Name: "user_id"}, {Name: "question_id"}, {Name: "contest_id"}},
+		UpdateAll: true,
+	}).Create(userAnswer).Error
 	return
 }

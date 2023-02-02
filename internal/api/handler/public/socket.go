@@ -1,12 +1,12 @@
-package wshandler
+package public
 
 import (
+	"github.com/dwnGnL/pg-contests/internal/repository"
 	"net/http"
 	"strconv"
 
 	apiModels "github.com/dwnGnL/pg-contests/internal/api/models"
 	"github.com/dwnGnL/pg-contests/internal/application"
-	"github.com/dwnGnL/pg-contests/lib/cachemap"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
 	"golang.org/x/sync/errgroup"
 
@@ -16,7 +16,7 @@ import (
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (ws wsHandler) wsContest(c *gin.Context) {
+func (ws publicHandler) wsContest(c *gin.Context) {
 	app, err := application.GetAppFromRequest(c)
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
@@ -43,11 +43,12 @@ func (ws wsHandler) wsContest(c *gin.Context) {
 		conn.WriteMessage(websocket.CloseInternalServerErr, []byte(err.Error()))
 		return
 	}
-	if req.Token != "token" {
+	tokenDetails, err := ws.jwtClient.ExtractTokenMetadata("Bearer" + req.Token)
+	if err != nil {
 		conn.WriteMessage(websocket.CloseInternalServerErr, []byte("token not valid"))
 		return
 	}
-	contest, err := app.CheckAndReturnContestByUserID(contestID, 1)
+	contest, err := app.CheckAndReturnContestByUserID(contestID, tokenDetails.ID)
 	if err != nil {
 		goerrors.Log().Print("CheckAndReturnContestByUserID:", err)
 		conn.WriteMessage(websocket.CloseInternalServerErr, []byte(err.Error()))
@@ -66,10 +67,38 @@ func (ws wsHandler) wsContest(c *gin.Context) {
 		for {
 			err := conn.ReadJSON(req)
 			if err != nil {
-				return err
+				goerrors.Log().WithError(err).Error("ReadJSON error")
+				//conn.WriteJSON()  // any model
+				continue
+			}
+			//записать ответ на текущий вопрос в бд
+			//посчитать время ответа на текущий вопрос оно должно быть от 0 до question.time
+			curTime, err := app.CalculateTimeForQuestion(contestID, req.QuestionID)
+			if err != nil {
+				goerrors.Log().WithError(err).Error("CalculateTimeForQuestion error")
+				continue
+			}
+			if curTime < 0 || curTime > contest.Questions[req.QuestionID].Time {
+				//conn.WriteJSON()  // any model
+				// не успел ответить
+				return nil
+			}
+			userAnswer := repository.UserAnswers{
+				UserID:     tokenDetails.ID,
+				ContestID:  contestID,
+				QuestionID: req.QuestionID,
+				AnswerID:   req.AnswerID,
+				Time:       curTime,
+			}
+			err = app.SubmitAnswer(&userAnswer)
+			if err != nil {
+				//conn.WriteJSON()  // any model
+				goerrors.Log().WithError(err).Error("SubmitAnswer error")
+				continue
 			}
 
 		}
+
 	})
 
 	// запись
@@ -95,15 +124,4 @@ func (ws wsHandler) wsContest(c *gin.Context) {
 	if err := group.Wait(); err != nil {
 		goerrors.Log().WithError(err).Error("Stopping ws with error")
 	}
-}
-
-func newWsHandler() *wsHandler {
-	return &wsHandler{
-		contestMap: cachemap.NewCacheMap[int64, subscribeSwitcher](),
-	}
-}
-
-func GenRouting(r *gin.RouterGroup) {
-	ws := newWsHandler()
-	r.Any("/connect/:contestID", ws.wsContest)
 }

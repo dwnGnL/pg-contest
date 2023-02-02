@@ -18,13 +18,6 @@ type Core interface {
 	Generate(contestID int64) models.WsResponse
 	Migrate() error
 	SubscribeContest(contestID int64, jwtToken string, userID int64) error
-}
-
-type AHandler struct {
-}
-
-type AService struct {
-}
-
-type BService struct {
+	CalculateTimeForQuestion(contestID, questionID int64) (int64, error)
+	SubmitAnswer(userAnswer *repository.UserAnswers) (err error)
 }
