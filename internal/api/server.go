@@ -3,11 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/dwnGnL/pg-contests/internal/api/handler/admin"
-	"github.com/dwnGnL/pg-contests/internal/api/handler/public"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/dwnGnL/pg-contests/internal/api/handler/admin"
+	"github.com/dwnGnL/pg-contests/internal/api/handler/public"
 
 	"github.com/dwnGnL/pg-contests/internal/application"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
@@ -25,7 +26,7 @@ func SetupHandlers(core application.Core, cfg *config.Config) GracefulStopFuncWi
 	apiv1 := c.Group("/api/v1/")
 	// apiv1.Use() добавить проверку токена
 	generateAPIV1Routing(apiv1, cfg)
-	port := os.Getenv("ListenPort")
+	port := os.Getenv("PORT")
 
 	if port == "" {
 		port = fmt.Sprint(cfg.ListenPort)
