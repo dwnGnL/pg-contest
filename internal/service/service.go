@@ -140,7 +140,7 @@ func (s ServiceImpl) UpdateContest(contest repository.Contest) (*repository.Cont
 }
 
 func (s ServiceImpl) ChangeStatus(contestID int64) (err error) {
-	contest, err := s.repo.GetContest(contestID)
+	contest, err := s.repo.GetContestInfo(contestID)
 	if err != nil {
 		return
 	}
