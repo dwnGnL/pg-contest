@@ -7,4 +7,6 @@ ListenPort: 8083
 
 ApiURL: https://dev.api-parviz.com/api/
 
-PrivKey: private_key_sec
+PublicPrivKey: private_key_sec
+
+AdminPrivKey: private_key_sec

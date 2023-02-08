@@ -25,7 +25,7 @@ func SetupHandlers(core application.Core, cfg *config.Config) GracefulStopFuncWi
 	apiv1 := c.Group("/api/v1/")
 	// apiv1.Use() добавить проверку токена
 	generateAPIV1Routing(apiv1, cfg)
-	port := os.Getenv("ListenPort")
+	port := os.Getenv("PORT")
 
 	if port == "" {
 		port = fmt.Sprint(cfg.ListenPort)
