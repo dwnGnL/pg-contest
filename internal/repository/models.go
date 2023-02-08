@@ -33,7 +33,7 @@ type Contest struct {
 	CreatedBy    string     `json:"created_by" gorm:"column:created_by"`
 	Photos       []Photo    `json:"photos" gorm:"polymorphic:Owner;constraint:OnDelete:CASCADE;"`
 	Questions    []Question `json:"questions" gorm:"foreignKey:ContestID;constraint:OnDelete:CASCADE"`
-	Active       bool       `json:"active" gorm:"column:active;default:false"`
+	Active       bool       `json:"active" gorm:"column:active;default:true"`
 	IsEnd        bool       `json:"is_end" gorm:"column:is_end;default:false"`
 	CreatedAt    *time.Time `json:"created_at" gorm:"autoCreateTime"`
 }
