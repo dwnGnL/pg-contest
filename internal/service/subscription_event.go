@@ -69,7 +69,7 @@ func (s ServiceImpl) chanWorker(ch chan<- models.WsResponse, contestID int64) {
 	for {
 		resp := s.Generate(contestID)
 		if resp.ContestStatus == models.End {
-			s.repo.ChangeContestInfo(repository.Contest{ID: contestID, IsEnd: true})
+			s.repo.ChangeContestInfo(&repository.Contest{ID: contestID, IsEnd: true})
 			ch <- resp
 			close(ch)
 			return
