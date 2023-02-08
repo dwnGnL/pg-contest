@@ -19,7 +19,7 @@ type UserContestResp struct {
 	PhotosLinks    pq.StringArray `json:"photos_links" gorm:"column:photos_links"`
 	QuestionsCount int64          `json:"questions_count" gorm:"column:questions_count"`
 	ContestLength  int64          `json:"contest_length" gorm:"column:contest_length"`
-	IsEnd          bool           `json:"is_end" gorm:"column:is_end"`
+	IsEnd          *bool          `json:"is_end" gorm:"column:is_end"`
 	PurchaseDate   *time.Time     `json:"purchase_date" gorm:"column:purchase_date"`
 	PurchasePrice  *float64       `json:"purchase_price" gorm:"column:purchase_price"`
 }
@@ -33,8 +33,8 @@ type Contest struct {
 	CreatedBy    string     `json:"created_by" gorm:"column:created_by"`
 	Photos       []Photo    `json:"photos" gorm:"polymorphic:Owner;constraint:OnDelete:CASCADE;"`
 	Questions    []Question `json:"questions" gorm:"foreignKey:ContestID;constraint:OnDelete:CASCADE"`
-	Active       bool       `json:"active" gorm:"column:active;default:true"`
-	IsEnd        bool       `json:"is_end" gorm:"column:is_end;default:false"`
+	Active       *bool      `json:"active" gorm:"column:active;default:true"`
+	IsEnd        *bool      `json:"is_end" gorm:"column:is_end;default:false"`
 	CreatedAt    *time.Time `json:"created_at" gorm:"autoCreateTime"`
 }
 
@@ -52,13 +52,13 @@ type Answer struct {
 	ID         int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	QuestionID int64  `json:"question_id" binding:"required" gorm:"column:question_id"`
 	Title      string `json:"title" binding:"required" gorm:"column:title"`
-	IsCorrect  bool   `json:"is_correct" gorm:"column:is_correct;default:false"`
+	IsCorrect  *bool  `json:"is_correct" gorm:"column:is_correct;default:false"`
 }
 
 type Photo struct {
 	ID        int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	FileName  string `json:"file_name,omitempty" binding:"required" gorm:"column:file_name"`
-	Uploaded  bool   `json:"uploaded,omitempty" gorm:"column:uploaded;default:false"`
+	Uploaded  *bool  `json:"uploaded,omitempty" gorm:"column:uploaded;default:false"`
 	Link      string `json:"link,omitempty" gorm:"column:link"`
 	OwnerID   int64  `json:"owner_id,omitempty" gorm:"column:owner_id"`
 	OwnerType string `json:"owner_type,omitempty" gorm:"column:owner_type"`
@@ -107,7 +107,7 @@ func (c *Contest) Validate() error {
 		}
 		correctAnsExist := false
 		for _, answer := range question.Answers {
-			if answer.IsCorrect {
+			if *answer.IsCorrect {
 				correctAnsExist = true
 				break
 			}

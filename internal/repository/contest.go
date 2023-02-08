@@ -92,7 +92,7 @@ func (r RepoImpl) GetContest(contestID int64) (contest *Contest, err error) {
 }
 
 func (r RepoImpl) GetContestInfo(contestID int64) (contest *Contest, err error) {
-	err = r.db.Table("contests").Where("id = ?", contestID).Scan(&contest).Error
+	err = r.db.Table("contests").Where("id = ?", contestID).Last(&contest).Error
 	return
 }
 

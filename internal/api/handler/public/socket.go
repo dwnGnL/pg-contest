@@ -55,7 +55,7 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 		conn.Close()
 		return
 	}
-	if contest.IsEnd {
+	if *contest.IsEnd {
 		conn.WriteJSON(app.Generate(contestID))
 		conn.Close()
 		return

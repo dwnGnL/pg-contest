@@ -53,7 +53,7 @@ func (s ServiceImpl) CheckAndReturnContestByUserID(contestID, userID int64) (*re
 	if err != nil {
 		return nil, err
 	}
-	if !contest.Active {
+	if !*contest.Active {
 		return nil, fmt.Errorf("contest not active")
 	}
 	userContest, err := s.repo.GetUserContest(contestID, userID)
@@ -144,8 +144,8 @@ func (s ServiceImpl) ChangeStatus(contestID int64) (newStatus bool, err error) {
 	if err != nil {
 		return
 	}
-	contest.Active = !contest.Active
-	return contest.Active, s.repo.ChangeContestInfo(contest)
+	*contest.Active = !*contest.Active
+	return *contest.Active, s.repo.ChangeContestInfo(contest)
 }
 
 func (s ServiceImpl) DeleteContest(contestID int64) (err error) {
