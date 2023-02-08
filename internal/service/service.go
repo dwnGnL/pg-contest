@@ -16,7 +16,7 @@ type repositoryIter interface {
 	GetAllContestByUserID(userID int64, pagination *repository.Pagination) (*repository.Pagination, error)
 	CreateContest(contest repository.Contest) (*repository.Contest, error)
 	UpdateContest(contest repository.Contest) (*repository.Contest, error)
-	ChangeContestInfo(contest repository.Contest) (*repository.Contest, error)
+	ChangeContestInfo(contest *repository.Contest) error
 	DeleteContest(contest repository.Contest) error
 	GetContest(contestID int64) (*repository.Contest, error)
 	GetContestInfo(contestID int64) (*repository.Contest, error)
@@ -139,13 +139,13 @@ func (s ServiceImpl) UpdateContest(contest repository.Contest) (*repository.Cont
 	return updatedContest, nil
 }
 
-func (s ServiceImpl) ChangeStatus(contestID int64) (err error) {
+func (s ServiceImpl) ChangeStatus(contestID int64) (newStatus bool, err error) {
 	contest, err := s.repo.GetContestInfo(contestID)
 	if err != nil {
 		return
 	}
-	_, err = s.repo.ChangeContestInfo(repository.Contest{ID: contestID, Active: !contest.Active})
-	return
+	contest.Active = !contest.Active
+	return contest.Active, s.repo.ChangeContestInfo(contest)
 }
 
 func (s ServiceImpl) DeleteContest(contestID int64) (err error) {

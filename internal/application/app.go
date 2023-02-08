@@ -12,7 +12,7 @@ type Core interface {
 	DeleteContest(contestID int64) error
 	CreateContest(contest repository.Contest) (*repository.Contest, error)
 	UpdateContest(contest repository.Contest) (*repository.Contest, error)
-	ChangeStatus(contestID int64) error
+	ChangeStatus(contestID int64) (newStatus bool, err error)
 	CheckAndReturnContestByUserID(contestID, userID int64) (*repository.Contest, error)
 	GenerateAndProcessChan(contestID int64) <-chan models.WsResponse
 	Generate(contestID int64) models.WsResponse

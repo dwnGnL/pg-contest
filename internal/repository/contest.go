@@ -108,12 +108,8 @@ func (r RepoImpl) UpdateContest(contest Contest) (*Contest, error) {
 	return &contest, nil
 }
 
-func (r RepoImpl) ChangeContestInfo(contest Contest) (*Contest, error) {
-	err := r.db.Updates(&contest).Error
-	if err != nil {
-		return nil, err
-	}
-	return &contest, nil
+func (r RepoImpl) ChangeContestInfo(contest *Contest) error {
+	return r.db.Updates(&contest).Error
 }
 
 func (r RepoImpl) SubscribeContest(contest Contest, userID int64) (err error) {

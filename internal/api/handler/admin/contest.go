@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"fmt"
 	"github.com/dwnGnL/pg-contests/internal/application"
 	"github.com/dwnGnL/pg-contests/internal/repository"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
@@ -132,27 +133,42 @@ func (ah *adminHandler) updateContest(c *gin.Context) {
 }
 
 func (ah *adminHandler) changeStatus(c *gin.Context) {
-	errorModel := repository.ErrorResponse{}
-	app, err := application.GetAppFromRequest(c)
+
+	var (
+		errorModel = repository.ErrorResponse{}
+		msg        string
+		newStatus  bool
+		contestID  int64
+		err        error
+		app        application.Core
+	)
+	app, err = application.GetAppFromRequest(c)
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
 		c.AbortWithStatus(http.StatusBadGateway)
 		return
 	}
-	contestID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	contestID, err = strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("Parse contest id error")
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	err = app.ChangeStatus(contestID)
+	newStatus, err = app.ChangeStatus(contestID)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("contest ChangeStatus error")
 		errorModel.Error.Message = "contest ChangeStatus error: " + err.Error()
 		c.JSON(http.StatusInternalServerError, errorModel)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Success"})
+	switch newStatus {
+	case true:
+		msg = fmt.Sprintf("Contest #%d was activated", contestID)
+	case false:
+		msg = fmt.Sprintf("Contest #%d was disabled", contestID)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": msg})
 }
 
 func (ah *adminHandler) migrate(c *gin.Context) {
