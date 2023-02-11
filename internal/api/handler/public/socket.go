@@ -1,9 +1,10 @@
 package public
 
 import (
-	"github.com/dwnGnL/pg-contests/internal/repository"
 	"net/http"
 	"strconv"
+
+	"github.com/dwnGnL/pg-contests/internal/repository"
 
 	apiModels "github.com/dwnGnL/pg-contests/internal/api/models"
 	"github.com/dwnGnL/pg-contests/internal/application"
@@ -34,7 +35,7 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		goerrors.Log().Print("upgrade:", err)
-		conn.WriteMessage(websocket.CloseInternalServerErr, []byte(err.Error()))
+		c.AbortWithError(http.StatusBadGateway, err)
 		return
 	}
 	req := new(apiModels.WsRequest)
