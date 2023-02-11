@@ -18,6 +18,8 @@ import (
 var upgrader = websocket.Upgrader{} // use default options
 
 func (ws publicHandler) wsContest(c *gin.Context) {
+	goerrors.Log().Println("start socket")
+
 	app, err := application.GetAppFromRequest(c)
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
@@ -32,23 +34,31 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
 	}
+	goerrors.Log().Println("start Upgrade")
+
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		goerrors.Log().Print("upgrade:", err)
 		c.AbortWithError(http.StatusBadGateway, err)
 		return
 	}
+	goerrors.Log().Println("read token")
+
 	req := new(apiModels.WsRequest)
 	err = conn.ReadJSON(req)
 	if err != nil {
 		conn.WriteMessage(websocket.CloseInternalServerErr, []byte(err.Error()))
 		return
 	}
-	tokenDetails, err := ws.jwtClient.ExtractTokenMetadata("Bearer" + req.Token)
+	goerrors.Log().Println("check token ")
+
+	tokenDetails, err := ws.jwtClient.ExtractTokenMetadata("Bearer " + req.Token)
 	if err != nil {
 		conn.WriteMessage(websocket.CloseInternalServerErr, []byte("token not valid"))
 		return
 	}
+	goerrors.Log().Println("CheckAndReturnContestByUserID")
+
 	contest, err := app.CheckAndReturnContestByUserID(contestID, tokenDetails.ID)
 	if err != nil {
 		goerrors.Log().Print("CheckAndReturnContestByUserID:", err)
