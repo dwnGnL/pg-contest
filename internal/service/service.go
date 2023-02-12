@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"time"
+
 	"github.com/dwnGnL/pg-contests/internal/config"
 	"github.com/dwnGnL/pg-contests/internal/repository"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
-	"sort"
-	"time"
 )
 
 type repositoryIter interface {
@@ -51,14 +52,14 @@ func New(conf *config.Config, repo repositoryIter, opts ...Option) *ServiceImpl 
 func (s ServiceImpl) CheckAndReturnContestByUserID(contestID, userID int64) (*repository.Contest, error) {
 	contest, err := s.repo.GetContest(contestID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetContest err: %w", err)
 	}
 	if !*contest.Active {
 		return nil, fmt.Errorf("contest not active")
 	}
 	userContest, err := s.repo.GetUserContest(contestID, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetUserContest err: %w", err)
 	}
 
 	if userContest == nil {

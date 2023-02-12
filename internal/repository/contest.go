@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+
 	"gorm.io/gorm/clause"
 )
 
@@ -138,7 +139,7 @@ func (r RepoImpl) ContestAvailability(contestID int64, userID int64) (contest *C
 }
 
 func (r RepoImpl) GetUserContest(contestID int64, userID int64) (userContest *UserContests, err error) {
-	err = r.db.Where("user_id = ? and contest_id = ?", userID, contestID).Find(userContest).Error
+	err = r.db.Where("user_id = ? and contest_id = ?", userID, contestID).Find(&userContest).Error
 	return
 }
 

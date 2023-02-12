@@ -47,14 +47,16 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 	req := new(apiModels.WsRequest)
 	err = conn.ReadJSON(req)
 	if err != nil {
-		conn.WriteMessage(websocket.CloseInternalServerErr, []byte(err.Error()))
+		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+		conn.Close()
 		return
 	}
 	goerrors.Log().Println("check token ")
 
 	tokenDetails, err := ws.jwtClient.ExtractTokenMetadata("Bearer " + req.Token)
 	if err != nil {
-		conn.WriteMessage(websocket.CloseInternalServerErr, []byte("token not valid"))
+		conn.WriteMessage(websocket.TextMessage, []byte("token not valid"))
+		conn.Close()
 		return
 	}
 	goerrors.Log().Println("CheckAndReturnContestByUserID")
@@ -62,7 +64,7 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 	contest, err := app.CheckAndReturnContestByUserID(contestID, tokenDetails.ID)
 	if err != nil {
 		goerrors.Log().Print("CheckAndReturnContestByUserID:", err)
-		conn.WriteMessage(websocket.CloseInternalServerErr, []byte(err.Error()))
+		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 		conn.Close()
 		return
 	}
@@ -76,11 +78,13 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 	// чтение
 	group.Go(func() error {
 		for {
+
 			err := conn.ReadJSON(req)
+			// if errors.Is(err,websocket.ErrBadHandshake)
 			if err != nil {
 				goerrors.Log().WithError(err).Error("ReadJSON error")
 				//conn.WriteJSON()  // any model
-				continue
+				break
 			}
 			//записать ответ на текущий вопрос в бд
 			//посчитать время ответа на текущий вопрос оно должно быть от 0 до question.time
@@ -107,9 +111,8 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 				goerrors.Log().WithError(err).Error("SubmitAnswer error")
 				continue
 			}
-
 		}
-
+		return nil
 	})
 
 	// запись
