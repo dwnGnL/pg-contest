@@ -3,6 +3,7 @@ package public
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/dwnGnL/pg-contests/internal/repository"
 
@@ -16,6 +17,12 @@ import (
 )
 
 var upgrader = websocket.Upgrader{} // use default options
+const (
+	pongWait = 60 * time.Second
+
+	// Send pings to peer with this period. Must be less than pongWait.
+	pingPeriod = (pongWait * 9) / 10
+)
 
 func (ws publicHandler) wsContest(c *gin.Context) {
 	goerrors.Log().Println("start socket")
@@ -76,6 +83,8 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 
 	var group errgroup.Group
 	// чтение
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	group.Go(func() error {
 		for {
 

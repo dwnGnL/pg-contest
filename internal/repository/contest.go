@@ -146,7 +146,7 @@ func (r RepoImpl) GetUserContest(contestID int64, userID int64) (userContest *Us
 func (r RepoImpl) SubmitAnswer(userAnswer *UserAnswers) (err error) {
 	var count int64
 
-	err = r.db.Where("user_id = ? and contest_id = ? and question_id = ? and answer_id = ?",
+	err = r.db.Model(UserAnswers{}).Where("user_id = ? and contest_id = ? and question_id = ? and answer_id = ?",
 		userAnswer.UserID, userAnswer.ContestID, userAnswer.QuestionID, userAnswer.AnswerID).
 		Count(&count).Error
 	if err != nil {
