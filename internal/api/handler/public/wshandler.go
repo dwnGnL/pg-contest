@@ -2,6 +2,7 @@ package public
 
 import (
 	"sync"
+	"time"
 
 	"github.com/dwnGnL/pg-contests/internal/api/models"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
@@ -13,25 +14,41 @@ type subscribeSwitcher struct {
 	subscribers *subscribers
 }
 
-func (s subscribeSwitcher) ReceiveEvent() {
-	for {
-		resp, ok := <-s.event
-		if !ok {
-			break
-		}
-		s.subscribers.Each(func(_ int, conn *websocket.Conn) {
+const writeWait = 10 * time.Second
 
-			err := conn.WriteJSON(resp)
-			if err != nil {
-				goerrors.Log().Warnf("writeJson err:%s", err.Error())
+func (s subscribeSwitcher) ReceiveEvent() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+	}()
+	for {
+		select {
+		case resp, ok := <-s.event:
+			if !ok {
+				break
 			}
+			s.subscribers.Each(func(_ int, conn *websocket.Conn) {
+				conn.SetWriteDeadline(time.Now().Add(writeWait))
+				err := conn.WriteJSON(resp)
+				if err != nil {
+					goerrors.Log().Warnf("writeJson err:%s", err.Error())
+				}
+				if resp.ContestStatus == models.End {
+					conn.Close()
+				}
+			})
 			if resp.ContestStatus == models.End {
-				conn.Close()
+				return
 			}
-		})
-		if resp.ContestStatus == models.End {
-			break
+		case <-ticker.C:
+			s.subscribers.Each(func(_ int, conn *websocket.Conn) {
+				conn.SetWriteDeadline(time.Now().Add(writeWait))
+				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+					return
+				}
+			})
 		}
+
 	}
 }
 
