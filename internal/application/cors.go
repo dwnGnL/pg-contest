@@ -14,7 +14,10 @@ func WithCORS() gin.HandlerFunc {
 			"Sec-WebSocket-Version,Sec-WebSocket-Extensions")
 		// rw.Header().Add("Access-Control-Allow-Credentials", "true")
 		rw.Header().Add("Access-Control-Allow-Methods", "*")
-
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
 		c.Next()
 	}
 }
