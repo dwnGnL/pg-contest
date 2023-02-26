@@ -11,6 +11,7 @@ import (
 )
 
 var layout = "2006-01-02T15:04Z07:00"
+var layoutOld = "2006-01-02T15:04"
 
 type UserContestResp struct {
 	ID             int64          `json:"id" gorm:"column:id"`
@@ -125,8 +126,11 @@ func (c *Contest) Validate() error {
 func (c *Contest) Started() (bool, error) {
 	startTime, err := time.Parse(layout, c.StartTime)
 	if err != nil {
-		goerrors.Log().Warnln("err on contest startTime Parse ", err)
-		return false, err
+		startTime, err = time.Parse(layoutOld, c.StartTime)
+		if err != nil {
+			goerrors.Log().Warnln("err on contest startTime Parse ", err)
+			return false, err
+		}
 	}
 	startTimeUnix := startTime.Unix()
 	now := time.Now().Unix()
