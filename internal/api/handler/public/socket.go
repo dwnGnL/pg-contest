@@ -97,10 +97,12 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 		for {
 			err := conn.ReadJSON(req)
 			// if errors.Is(err,websocket.ErrBadHandshake)
+
 			if err != nil {
 				conn.WriteJSON(models.WsResponse{ErrorCode: 1, ErrorMess: "ошибка чтения запроса " + err.Error()}) // any model
 				goerrors.Log().WithError(err).Error("ReadJSON error")
-				continue
+				conn.Close()
+				break
 			}
 			//записать ответ на текущий вопрос в бд
 			//посчитать время ответа на текущий вопрос оно должно быть от 0 до question.time
@@ -129,6 +131,7 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 				continue
 			}
 		}
+		return nil
 	})
 
 	// запись
