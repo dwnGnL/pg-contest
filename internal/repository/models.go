@@ -3,13 +3,14 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
-	"time"
 )
 
-var layout = "2006-01-02T15:04"
+var layout = "2006-01-02T15:04Z07:00"
 
 type UserContestResp struct {
 	ID             int64          `json:"id" gorm:"column:id"`
