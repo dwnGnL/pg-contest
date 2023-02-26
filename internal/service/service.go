@@ -64,9 +64,10 @@ func (s ServiceImpl) CheckAndReturnContestByUserID(contestID, userID int64) (*re
 		return nil, fmt.Errorf("GetUserContest err: %w", err)
 	}
 
-	if userContest == nil {
+	if userContest == nil || userContest != nil && userContest.ContestID != contestID {
 		return nil, SubscribeErr
 	}
+
 	return contest, nil
 }
 
