@@ -12,20 +12,26 @@ import (
 type subscribeSwitcher struct {
 	event       <-chan models.WsResponse
 	subscribers *subscribers
+	End         bool
 }
 
 const writeWait = 10 * time.Second
 
-func (s subscribeSwitcher) ReceiveEvent() {
+func (s *subscribeSwitcher) ReceiveEvent() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
+		s.subscribers.Each(func(_ int, conn *websocket.Conn) {
+			conn.SetWriteDeadline(time.Now().Add(writeWait))
+			conn.WriteMessage(websocket.CloseMessage, []byte{})
+		})
+		s.End = true
 		ticker.Stop()
 	}()
 	for {
 		select {
 		case resp, ok := <-s.event:
 			if !ok {
-				break
+				return
 			}
 			s.subscribers.Each(func(_ int, conn *websocket.Conn) {
 				conn.SetWriteDeadline(time.Now().Add(writeWait))
@@ -34,7 +40,7 @@ func (s subscribeSwitcher) ReceiveEvent() {
 					goerrors.Log().Warnf("writeJson err:%s", err.Error())
 				}
 				if resp.ContestStatus == models.End {
-					conn.Close()
+					conn.WriteMessage(websocket.CloseMessage, []byte{})
 				}
 			})
 			if resp.ContestStatus == models.End {

@@ -49,6 +49,8 @@ func New(conf *config.Config, repo repositoryIter, opts ...Option) *ServiceImpl 
 	return &s
 }
 
+var SubscribeErr = fmt.Errorf("please subscribe contest to continue")
+
 func (s ServiceImpl) CheckAndReturnContestByUserID(contestID, userID int64) (*repository.Contest, error) {
 	contest, err := s.repo.GetContest(contestID)
 	if err != nil {
@@ -63,7 +65,7 @@ func (s ServiceImpl) CheckAndReturnContestByUserID(contestID, userID int64) (*re
 	}
 
 	if userContest == nil {
-		return nil, fmt.Errorf("please subscribe contest to continue")
+		return nil, SubscribeErr
 	}
 	return contest, nil
 }
@@ -75,7 +77,7 @@ func (s ServiceImpl) CalculateTimeForQuestion(contestID, questionID int64) (resT
 		return
 	}
 
-	layout := "2006-01-02T15:04"
+	layout := "2006-01-02T15:04Z07:00"
 	startTime, err := time.Parse(layout, contest.StartTime)
 	if err != nil {
 		goerrors.Log().Warnln("err on time.Parse ", err)

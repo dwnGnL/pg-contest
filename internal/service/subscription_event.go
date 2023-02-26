@@ -23,7 +23,7 @@ func (s ServiceImpl) Generate(contestID int64) models.WsResponse {
 	var resp models.WsResponse
 	resp.TotalStep = len(contest.Questions)
 
-	layout := "2006-01-02T15:04"
+	layout := "2006-01-02T15:04Z07:00"
 	startTime, err := time.Parse(layout, contest.StartTime)
 	if err != nil {
 		goerrors.Log().Warnln("err on time.Parse ", err)
@@ -46,13 +46,19 @@ func (s ServiceImpl) Generate(contestID int64) models.WsResponse {
 		totalTime += v.Time
 		if now-totalTime >= startTimeUnix {
 			resp.Questions = append(resp.Questions, convertRepQToWsQ(contest.Questions[i]))
-			resp.ActiveQuestionID = v.ID
-			resp.Step = i + 1
-			resp.TotalTime = v.Time
 			continue
 		}
 		break
 	}
+
+	countPassed := len(resp.Questions)
+	if countPassed != len(contest.Questions) {
+		resp.Questions = append(resp.Questions, convertRepQToWsQ(contest.Questions[countPassed]))
+		resp.ActiveQuestionID = contest.Questions[countPassed].ID
+		resp.Step = countPassed + 1
+		resp.TotalTime = contest.Questions[countPassed].Time
+	}
+
 	resp.ContestStatus = models.Start
 	resp.CountDown = (totalTime + startTimeUnix) - now
 	resp.TotalStep = len(contest.Questions)

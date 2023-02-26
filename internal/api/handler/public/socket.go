@@ -1,12 +1,15 @@
 package public
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/dwnGnL/pg-contests/internal/repository"
+	"github.com/dwnGnL/pg-contests/internal/service"
 
+	"github.com/dwnGnL/pg-contests/internal/api/models"
 	apiModels "github.com/dwnGnL/pg-contests/internal/api/models"
 	"github.com/dwnGnL/pg-contests/internal/application"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
@@ -55,7 +58,7 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 	err = conn.ReadJSON(req)
 	if err != nil {
 		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
-		conn.Close()
+		conn.WriteMessage(websocket.CloseMessage, []byte{})
 		return
 	}
 	goerrors.Log().Println("check token ")
@@ -63,13 +66,18 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 	tokenDetails, err := ws.jwtClient.ExtractTokenMetadata("Bearer " + req.Token)
 	if err != nil {
 		conn.WriteMessage(websocket.TextMessage, []byte("token not valid"))
-		conn.Close()
+		conn.WriteMessage(websocket.CloseMessage, []byte{})
 		return
 	}
 	goerrors.Log().Println("CheckAndReturnContestByUserID")
 
 	contest, err := app.CheckAndReturnContestByUserID(contestID, tokenDetails.ID)
 	if err != nil {
+		if errors.Is(err, service.SubscribeErr) {
+			conn.WriteJSON(models.WsResponse{ErrorCode: 2, ErrorMess: err.Error()})
+			conn.Close()
+			return
+		}
 		goerrors.Log().Print("CheckAndReturnContestByUserID:", err)
 		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 		conn.Close()
@@ -77,7 +85,7 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 	}
 	if *contest.IsEnd {
 		conn.WriteJSON(app.Generate(contestID))
-		conn.Close()
+		conn.WriteMessage(websocket.CloseMessage, []byte{})
 		return
 	}
 
@@ -87,25 +95,25 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 	conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	group.Go(func() error {
 		for {
-
 			err := conn.ReadJSON(req)
 			// if errors.Is(err,websocket.ErrBadHandshake)
 			if err != nil {
+				conn.WriteJSON(models.WsResponse{ErrorCode: 1, ErrorMess: "ошибка чтения запроса " + err.Error()}) // any model
 				goerrors.Log().WithError(err).Error("ReadJSON error")
-				//conn.WriteJSON()  // any model
-				break
+				continue
 			}
 			//записать ответ на текущий вопрос в бд
 			//посчитать время ответа на текущий вопрос оно должно быть от 0 до question.time
 			curTime, err := app.CalculateTimeForQuestion(contestID, req.QuestionID)
 			if err != nil {
+				conn.WriteJSON(models.WsResponse{ErrorCode: 1, ErrorMess: "получение времени конкурса " + err.Error()}) // any model
 				goerrors.Log().WithError(err).Error("CalculateTimeForQuestion error")
 				continue
 			}
 			if curTime < 0 || curTime > contest.Questions[req.QuestionID].Time {
-				//conn.WriteJSON()  // any model
-				// не успел ответить
-				return nil
+				conn.WriteJSON(models.WsResponse{ErrorCode: 1, ErrorMess: "время вышло или не настало еще "}) // any model
+				goerrors.Log().Error("CalculateTimeForQuestion error")
+				continue
 			}
 			userAnswer := repository.UserAnswers{
 				UserID:     tokenDetails.ID,
@@ -116,18 +124,17 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 			}
 			err = app.SubmitAnswer(&userAnswer)
 			if err != nil {
-				//conn.WriteJSON()  // any model
+				conn.WriteJSON(models.WsResponse{ErrorCode: 1, ErrorMess: "SubmitAnswer error " + err.Error()}) // any model
 				goerrors.Log().WithError(err).Error("SubmitAnswer error")
 				continue
 			}
 		}
-		return nil
 	})
 
 	// запись
 	group.Go(func() error {
 		switcher, ok := ws.contestMap.Load(contestID)
-		if ok {
+		if ok && !switcher.End {
 			conn.WriteJSON(app.Generate(contestID))
 			switcher.subscribers.Add(conn)
 			return nil
@@ -135,7 +142,7 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 		ch := app.GenerateAndProcessChan(contestID)
 		subscriber := new(subscribers)
 		subscriber.Add(conn)
-		switcher = subscribeSwitcher{
+		switcher = &subscribeSwitcher{
 			event:       ch,
 			subscribers: subscriber,
 		}

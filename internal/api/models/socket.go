@@ -22,6 +22,8 @@ type WsResponse struct {
 	CountDown        int64         `json:"count_down"`
 	TotalTime        int64         `json:"total_time"`
 	Questions        []WsQuestion  `json:"questions"`
+	ErrorCode        int           `json:"error_code"`
+	ErrorMess        string        `json:"error_msg"`
 }
 
 type WsQuestion struct {

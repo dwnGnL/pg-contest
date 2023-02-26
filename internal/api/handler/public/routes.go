@@ -8,13 +8,13 @@ import (
 )
 
 type publicHandler struct {
-	contestMap *cachemap.CacheMaper[int64, subscribeSwitcher]
+	contestMap *cachemap.CacheMaper[int64, *subscribeSwitcher]
 	jwtClient  token.JwtToken[PublicAccessDetails]
 }
 
 func newPublicHandler(cfg *config.Config) *publicHandler {
 	return &publicHandler{
-		contestMap: cachemap.NewCacheMap[int64, subscribeSwitcher](),
+		contestMap: cachemap.NewCacheMap[int64, *subscribeSwitcher](),
 		jwtClient:  token.New[PublicAccessDetails](cfg.PublicPrivKey),
 	}
 }
