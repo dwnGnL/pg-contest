@@ -147,16 +147,16 @@ func (c *Contest) BeforeDelete(tx *gorm.DB) (err error) {
 	if err != nil {
 		return err
 	}
-	started, err := c.Started()
-	if err != nil {
-		goerrors.Log().Warnln("BEFORE DELETE check contest if started error: ", err)
-		return err
-	}
-	if started {
-		err = errors.New(fmt.Sprintf("Конкурс №%d уже начался", c.ID))
-		goerrors.Log().Warnln("BEFORE DELETE ", err)
-		return err
-	}
+	// started, err := c.Started()
+	// if err != nil {
+	// 	goerrors.Log().Warnln("BEFORE DELETE check contest if started error: ", err)
+	// 	return err
+	// }
+	// if started {
+	// 	err = errors.New(fmt.Sprintf("Конкурс №%d уже начался", c.ID))
+	// 	goerrors.Log().Warnln("BEFORE DELETE ", err)
+	// 	return err
+	// }
 	return
 }
 
