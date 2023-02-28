@@ -104,6 +104,9 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 				conn.Close()
 				break
 			}
+			if req.AnswerID == 0 || req.QuestionID == 0 {
+				continue
+			}
 			//записать ответ на текущий вопрос в бд
 			//посчитать время ответа на текущий вопрос оно должно быть от 0 до question.time
 			curTime, err := app.CalculateTimeForQuestion(contestID, req.QuestionID)
