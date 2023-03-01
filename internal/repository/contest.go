@@ -87,6 +87,41 @@ func (r RepoImpl) GetAllContestByUserID(userID int64, pagination *Pagination) (*
 	return pagination, nil
 }
 
+func (r RepoImpl) GetContestStatsById(contestID, currentQuestionID int64, pagination *Pagination) (*Pagination, error) {
+
+	var totalRows int64
+	//считаем общее количество пользователей купивших данный конкурс
+	err := r.db.Model(UserContests{}).Where("contest_id = ?", contestID).Count(&totalRows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	contestStatsResp := new([]ContestStats)
+	//запрос для отображения результатов ВСЕХ пользователей купивших данный конкурс, независимо от факта участия
+	err = r.db.Table("user_contests uc").
+		Select("uc.user_id AS user_id,"+
+			"COUNT(CASE is_correct WHEN true THEN 1 END ) AS total_correct,"+
+			"SUM(CASE is_correct WHEN true THEN q.score ELSE 0 END) AS total_score,"+
+			"SUM(CASE is_correct WHEN true THEN ua.time ELSE 0 END) AS total_time").
+		Joins("LEFT OUTER JOIN user_answers ua ON uc.user_id = ua.user_id").
+		Joins("LEFT OUTER JOIN answers a ON ua.answer_id = a.id AND ua.question_id = a.question_id AND ua.question_id <> ?", currentQuestionID).
+		Joins("LEFT OUTER JOIN questions q ON q.id = ua.question_id").
+		Where("uc.contest_id = ?", contestID).
+		Group("uc.user_id").
+		Order("total_score DESC, total_time ASC").Scopes(Paginate(pagination)).
+		Scan(&contestStatsResp).Error
+	if err != nil {
+		return nil, err
+	}
+	pagination.Records = contestStatsResp
+	pagination.TotalRows = totalRows
+	pagination.TotalPages = int(pagination.TotalRows / int64(pagination.Limit))
+	if pagination.TotalRows%int64(pagination.Limit) > 0 {
+		pagination.TotalPages++
+	}
+	return pagination, nil
+}
+
 func (r RepoImpl) GetContest(contestID int64) (contest *Contest, err error) {
 	err = r.db.Preload("Questions.Answers").Preload("Photos").Last(&contest, contestID).Error
 	return

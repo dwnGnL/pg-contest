@@ -86,3 +86,30 @@ func (ph *publicHandler) subscribeContestById(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Success"})
 }
+
+func (ph *publicHandler) getContestStatsById(c *gin.Context) {
+	errorModel := repository.ErrorResponse{}
+	app, err := application.GetAppFromRequest(c)
+	if err != nil {
+		goerrors.Log().Warn("fatal err: %w", err)
+		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+	contestID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("Parse contest id error")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	pagination := repository.GetPaginateSettings(c.Request)
+
+	contests, err := app.GetContestStatsById(contestID, pagination)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("get contest stats by contestID error")
+		errorModel.Error.Message = "get contest stats by contestID error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
+		return
+	}
+	c.JSON(http.StatusOK, contests)
+}

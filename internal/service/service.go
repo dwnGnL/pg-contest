@@ -15,6 +15,7 @@ import (
 type repositoryIter interface {
 	GetAllContest(pagination *repository.Pagination) (*repository.Pagination, error)
 	GetAllContestByUserID(userID int64, pagination *repository.Pagination) (*repository.Pagination, error)
+	GetContestStatsById(contestID, currentQuestionID int64, pagination *repository.Pagination) (*repository.Pagination, error)
 	CreateContest(contest repository.Contest) (*repository.Contest, error)
 	UpdateContest(contest repository.Contest) (*repository.Contest, error)
 	ChangeContestInfo(contest *repository.Contest) error
@@ -103,6 +104,38 @@ func (s ServiceImpl) CalculateTimeForQuestion(contestID, questionID int64) (resT
 	return
 }
 
+func (s ServiceImpl) GetCurrentQuestionID(contestID int64) (questionID int64, err error) {
+	contest, err := s.repo.GetContest(contestID)
+	if err != nil {
+		goerrors.Log().Warnln("err on GetContest ", err)
+		return
+	}
+
+	layout := "2006-01-02T15:04Z07:00"
+	startTime, err := time.Parse(layout, contest.StartTime)
+	if err != nil {
+		goerrors.Log().Warnln("err on time.Parse ", err)
+		return
+	}
+	startTimeUnix := startTime.Unix()
+
+	now := time.Now().Unix() - startTimeUnix
+
+	sort.Slice(contest.Questions, func(i, j int) bool {
+		return contest.Questions[i].Order < contest.Questions[j].Order
+	})
+
+	var totalTime int64
+	for _, v := range contest.Questions {
+		totalTime += v.Time
+		if now <= totalTime {
+			questionID = v.ID
+			return
+		}
+	}
+	return
+}
+
 func (s ServiceImpl) GetAllContest(pagination *repository.Pagination) (*repository.Pagination, error) {
 	contests, err := s.repo.GetAllContest(pagination)
 	if err != nil {
@@ -117,6 +150,18 @@ func (s ServiceImpl) GetAllContestByUserID(userID int64, pagination *repository.
 		return nil, err
 	}
 	return contests, nil
+}
+
+func (s ServiceImpl) GetContestStatsById(contestID int64, pagination *repository.Pagination) (*repository.Pagination, error) {
+	currentQuestionID, err := s.GetCurrentQuestionID(contestID)
+	if err != nil {
+		return nil, err
+	}
+	contestStats, err := s.repo.GetContestStatsById(contestID, currentQuestionID, pagination)
+	if err != nil {
+		return nil, err
+	}
+	return contestStats, nil
 }
 
 func (s ServiceImpl) GetContest(contestID int64) (*repository.Contest, error) {

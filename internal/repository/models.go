@@ -81,6 +81,14 @@ type UserAnswers struct {
 	Time       int64 `json:"time" gorm:"column:time"`
 }
 
+type ContestStats struct {
+	UserID       int64  `json:"user_id" gorm:"user_id"`
+	UserName     string `json:"user_name" gorm:"user_name"`
+	TotalScore   int    `json:"total_score" gorm:"total_score"`
+	TotalTime    int64  `json:"total_time" gorm:"total_time"`
+	TotalCorrect int64  `json:"total_correct" gorm:"total_correct"`
+}
+
 type UserTickets struct {
 	UserID    int64 `gorm:"column:user_id"`
 	ContestID int64 `gorm:"column:contest_id"`

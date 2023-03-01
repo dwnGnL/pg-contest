@@ -25,7 +25,17 @@ func (ah *adminHandler) createContest(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadGateway)
 		return
 	}
-	//todo: request.CreatedBy = user_id
+
+	bearerToken := c.Request.Header.Get("Authorization")
+	tokenDetails, err := ah.jwtClient.ExtractTokenMetadata(bearerToken)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
+		return
+	}
+
+	request.CreatedBy = strconv.FormatInt(tokenDetails.ID, 10)
 	contest, err := app.CreateContest(request)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("create contest error")
@@ -44,8 +54,18 @@ func (ah *adminHandler) getAllContest(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadGateway)
 		return
 	}
+
+	bearerToken := c.Request.Header.Get("Authorization")
+	_, err = ah.jwtClient.ExtractTokenMetadata(bearerToken)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
+		return
+	}
+
 	pagination := repository.GetPaginateSettings(c.Request)
-	//todo: request.CreatedBy = user_id
+
 	contests, err := app.GetAllContest(pagination)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("get all contest error")
@@ -62,6 +82,15 @@ func (ah *adminHandler) getContestById(c *gin.Context) {
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
 		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+
+	bearerToken := c.Request.Header.Get("Authorization")
+	_, err = ah.jwtClient.ExtractTokenMetadata(bearerToken)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
 		return
 	}
 
@@ -87,6 +116,15 @@ func (ah *adminHandler) deleteContestById(c *gin.Context) {
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
 		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+
+	bearerToken := c.Request.Header.Get("Authorization")
+	_, err = ah.jwtClient.ExtractTokenMetadata(bearerToken)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
 		return
 	}
 
@@ -123,6 +161,15 @@ func (ah *adminHandler) updateContest(c *gin.Context) {
 		return
 	}
 
+	bearerToken := c.Request.Header.Get("Authorization")
+	_, err = ah.jwtClient.ExtractTokenMetadata(bearerToken)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
+		return
+	}
+
 	contest, err := app.UpdateContest(request)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("update contest error")
@@ -148,6 +195,16 @@ func (ah *adminHandler) changeStatus(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadGateway)
 		return
 	}
+
+	bearerToken := c.Request.Header.Get("Authorization")
+	_, err = ah.jwtClient.ExtractTokenMetadata(bearerToken)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
+		return
+	}
+
 	contestID, err = strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("Parse contest id error")
@@ -180,6 +237,16 @@ func (ah *adminHandler) migrate(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadGateway)
 		return
 	}
+
+	bearerToken := c.Request.Header.Get("Authorization")
+	_, err = ah.jwtClient.ExtractTokenMetadata(bearerToken)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
+		return
+	}
+
 	err = app.Migrate()
 	if err != nil {
 		goerrors.Log().WithError(err).Error("migrate error")
