@@ -115,7 +115,18 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 				goerrors.Log().WithError(err).Error("CalculateTimeForQuestion error")
 				continue
 			}
-			if curTime < 0 || curTime > contest.Questions[req.QuestionID].Time {
+			var question *repository.Question
+			for _, v := range contest.Questions {
+				if v.ID == req.QuestionID {
+					question = &v
+				}
+			}
+			if question == nil {
+				conn.WriteJSON(models.WsResponse{ErrorCode: 1, ErrorMess: "нет такого вопроса в этом конкурсе "}) // any model
+				goerrors.Log().Error("CalculateTimeForQuestion error")
+				continue
+			}
+			if curTime < 0 || curTime > question.Time {
 				conn.WriteJSON(models.WsResponse{ErrorCode: 1, ErrorMess: "время вышло или не настало еще "}) // any model
 				goerrors.Log().Error("CalculateTimeForQuestion error")
 				continue
