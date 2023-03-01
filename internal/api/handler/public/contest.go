@@ -103,7 +103,7 @@ func (ph *publicHandler) getContestStatsById(c *gin.Context) {
 	}
 
 	pagination := repository.GetPaginateSettings(c.Request)
-
+	pagination.Sort = ""
 	contests, err := app.GetContestStatsById(contestID, pagination)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("get contest stats by contestID error")
