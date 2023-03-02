@@ -50,9 +50,17 @@ func (ph *publicHandler) subscribeContestById(c *gin.Context) {
 		app        application.Core
 		errorModel = repository.ErrorResponse{}
 		jwtToken   string
-		contestID  int64
 		err        error
+		request    = repository.UserContests{}
 	)
+
+	if err = c.ShouldBindJSON(&request); err != nil {
+		goerrors.Log().WithError(err).Error("bind request error")
+		errorModel.Error.Message = "bind request error: " + err.Error()
+		c.JSON(http.StatusBadRequest, errorModel)
+		return
+	}
+
 	app, err = application.GetAppFromRequest(c)
 	if err != nil {
 		goerrors.Log().Warn("fatal err: %w", err)
@@ -70,14 +78,9 @@ func (ph *publicHandler) subscribeContestById(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, errorModel)
 		return
 	}
+	request.UserID = tokenDetails.ID
 
-	contestID, err = strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		goerrors.Log().WithError(err).Error("Parse contest id error")
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	err = app.SubscribeContest(contestID, jwtToken, tokenDetails.ID)
+	err = app.SubscribeContest(&request, jwtToken)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("subscribe contest error")
 		errorModel.Error.Message = "subscribe contest error: " + err.Error()
@@ -104,12 +107,84 @@ func (ph *publicHandler) getContestStatsById(c *gin.Context) {
 
 	pagination := repository.GetPaginateSettings(c.Request)
 	pagination.Sort = ""
-	contests, err := app.GetContestStatsById(contestID, pagination)
+	contestStats, err := app.GetContestStatsById(contestID, pagination)
 	if err != nil {
 		goerrors.Log().WithError(err).Error("get contest stats by contestID error")
 		errorModel.Error.Message = "get contest stats by contestID error: " + err.Error()
 		c.JSON(http.StatusInternalServerError, errorModel)
 		return
 	}
-	c.JSON(http.StatusOK, contests)
+	c.JSON(http.StatusOK, contestStats)
+}
+
+func (ph *publicHandler) getContestStatsForUser(c *gin.Context) {
+	errorModel := repository.ErrorResponse{}
+	app, err := application.GetAppFromRequest(c)
+	if err != nil {
+		goerrors.Log().Warn("fatal err: %w", err)
+		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+
+	bearerToken := c.Request.Header.Get("Authorization")
+	tokenDetails, err := ph.jwtClient.ExtractTokenMetadata(bearerToken)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
+		return
+	}
+	userID := tokenDetails.ID
+
+	contestID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("Parse contest id error")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	contestStatsForUser, err := app.GetContestStatsForUser(contestID, userID)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("get contest stats by contestID error")
+		errorModel.Error.Message = "get contest stats by contestID error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
+		return
+	}
+	c.JSON(http.StatusOK, contestStatsForUser)
+}
+
+func (ph *publicHandler) getContestFullStatsForUser(c *gin.Context) {
+	errorModel := repository.ErrorResponse{}
+	app, err := application.GetAppFromRequest(c)
+	if err != nil {
+		goerrors.Log().Warn("fatal err: %w", err)
+		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+
+	bearerToken := c.Request.Header.Get("Authorization")
+	tokenDetails, err := ph.jwtClient.ExtractTokenMetadata(bearerToken)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("ExtractTokenMetadata error")
+		errorModel.Error.Message = err.Error()
+		c.JSON(http.StatusUnauthorized, errorModel)
+		return
+	}
+	userID := tokenDetails.ID
+
+	contestID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("Parse contest id error")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	contestStatsForUser, err := app.GetContestFullStatsForUser(contestID, userID)
+	if err != nil {
+		goerrors.Log().WithError(err).Error("get contest full stats by contestID error")
+		errorModel.Error.Message = "get contest full stats by contestID error: " + err.Error()
+		c.JSON(http.StatusInternalServerError, errorModel)
+		return
+	}
+	c.JSON(http.StatusOK, contestStatsForUser)
 }

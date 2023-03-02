@@ -25,8 +25,10 @@ func GenRouting(r *gin.RouterGroup, cfg *config.Config) {
 
 	//user
 	r.GET("/user/contests", public.getAllContestByUserID)
-	r.POST("/contest/:id/subscribe", public.subscribeContestById)
+	r.POST("/contest/subscribe", public.subscribeContestById)
 	r.GET("/contest/:id/stats", public.getContestStatsById)
+	r.GET("/contest/:id/userStats", public.getContestStatsForUser)
+	r.GET("/contest/:id/fullUserStats", public.getContestFullStatsForUser)
 
 	//ws
 	r.Any("/connect/:contestID", public.wsContest)

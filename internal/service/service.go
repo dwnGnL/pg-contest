@@ -16,6 +16,8 @@ type repositoryIter interface {
 	GetAllContest(pagination *repository.Pagination) (*repository.Pagination, error)
 	GetAllContestByUserID(userID int64, pagination *repository.Pagination) (*repository.Pagination, error)
 	GetContestStatsById(contestID, currentQuestionID int64, pagination *repository.Pagination) (*repository.Pagination, error)
+	GetContestStatsForUser(contestID, userID, currentQuestionID int64) (*repository.ContestStats, error)
+	GetContestFullStatsForUser(contestID, userID int64, currentQuestionOrder int) (*repository.Contest, error)
 	CreateContest(contest repository.Contest) (*repository.Contest, error)
 	UpdateContest(contest repository.Contest) (*repository.Contest, error)
 	ChangeContestInfo(contest *repository.Contest) error
@@ -104,7 +106,7 @@ func (s ServiceImpl) CalculateTimeForQuestion(contestID, questionID int64) (resT
 	return
 }
 
-func (s ServiceImpl) GetCurrentQuestionID(contestID int64) (questionID int64, err error) {
+func (s ServiceImpl) GetCurrentQuestion(contestID int64) (question repository.Question, err error) {
 	contest, err := s.repo.GetContest(contestID)
 	if err != nil {
 		goerrors.Log().Warnln("err on GetContest ", err)
@@ -129,7 +131,7 @@ func (s ServiceImpl) GetCurrentQuestionID(contestID int64) (questionID int64, er
 	for _, v := range contest.Questions {
 		totalTime += v.Time
 		if now <= totalTime {
-			questionID = v.ID
+			question = v
 			return
 		}
 	}
@@ -153,15 +155,39 @@ func (s ServiceImpl) GetAllContestByUserID(userID int64, pagination *repository.
 }
 
 func (s ServiceImpl) GetContestStatsById(contestID int64, pagination *repository.Pagination) (*repository.Pagination, error) {
-	currentQuestionID, err := s.GetCurrentQuestionID(contestID)
+	currentQuestion, err := s.GetCurrentQuestion(contestID)
 	if err != nil {
 		return nil, err
 	}
-	contestStats, err := s.repo.GetContestStatsById(contestID, currentQuestionID, pagination)
+	contestStats, err := s.repo.GetContestStatsById(contestID, currentQuestion.ID, pagination)
 	if err != nil {
 		return nil, err
 	}
 	return contestStats, nil
+}
+
+func (s ServiceImpl) GetContestStatsForUser(contestID, userID int64) (*repository.ContestStats, error) {
+	currentQuestion, err := s.GetCurrentQuestion(contestID)
+	if err != nil {
+		return nil, err
+	}
+	contestStats, err := s.repo.GetContestStatsForUser(contestID, userID, currentQuestion.ID)
+	if err != nil {
+		return nil, err
+	}
+	return contestStats, nil
+}
+
+func (s ServiceImpl) GetContestFullStatsForUser(contestID, userID int64) (*repository.Contest, error) {
+	currentQuestion, err := s.GetCurrentQuestion(contestID)
+	if err != nil {
+		return nil, err
+	}
+	contest, err := s.repo.GetContestFullStatsForUser(contestID, userID, currentQuestion.Order)
+	if err != nil {
+		return nil, err
+	}
+	return contest, nil
 }
 
 func (s ServiceImpl) GetContest(contestID int64) (*repository.Contest, error) {
@@ -213,7 +239,7 @@ func (s ServiceImpl) SubmitAnswer(userAnswer *repository.UserAnswers) (err error
 	return s.repo.SubmitAnswer(userAnswer)
 }
 
-func (s ServiceImpl) SubscribeContest(contestID int64, jwtToken string, userID int64) error {
+func (s ServiceImpl) SubscribeContest(userContest *repository.UserContests, jwtToken string) error {
 	var (
 		header map[string]string
 		res    interface{}
@@ -222,7 +248,7 @@ func (s ServiceImpl) SubscribeContest(contestID int64, jwtToken string, userID i
 
 	header = map[string]string{"Authorization": jwtToken}
 
-	contest, err := s.repo.ContestAvailability(contestID, userID)
+	contest, err := s.repo.ContestAvailability(userContest.ContestID, userContest.UserID)
 	if err != nil {
 		return err
 	}
@@ -239,7 +265,7 @@ func (s ServiceImpl) SubscribeContest(contestID int64, jwtToken string, userID i
 	if err = s.SendRequest("POST", bytes.NewBuffer(body), &res, &header); err != nil {
 		return err
 	}
-	err = s.repo.SubscribeContest(*contest, userID)
+	err = s.repo.SubscribeContest(*contest, userContest.UserID)
 	if err != nil {
 		return err
 	}

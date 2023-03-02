@@ -55,6 +55,7 @@ type Answer struct {
 	QuestionID int64  `json:"question_id" binding:"required" gorm:"column:question_id"`
 	Title      string `json:"title" binding:"required" gorm:"column:title"`
 	IsCorrect  *bool  `json:"is_correct" gorm:"column:is_correct;default:false"`
+	ChooseTime int64  `json:"choose_time,omitempty"` // время ответа в секундах //gorm:"column:choose_time;-:migration;->"
 }
 
 type Photo struct {
@@ -69,6 +70,8 @@ type Photo struct {
 type UserContests struct {
 	UserID    int64      `json:"user_id" gorm:"column:user_id;primaryKey"`
 	ContestID int64      `json:"contest_id" gorm:"column:contest_id;primaryKey"`
+	UserName  string     `json:"user_name,omitempty" gorm:"column:user_name"`
+	Email     string     `json:"email,omitempty" gorm:"column:email"`
 	Price     float64    `json:"price" gorm:"column:price"`
 	CreatedAt *time.Time `json:"created_at" gorm:"autoCreateTime"`
 }
@@ -82,11 +85,12 @@ type UserAnswers struct {
 }
 
 type ContestStats struct {
-	UserID       int64  `json:"user_id" gorm:"user_id"`
-	UserName     string `json:"user_name" gorm:"user_name"`
-	TotalScore   int    `json:"total_score" gorm:"total_score"`
-	TotalTime    int64  `json:"total_time" gorm:"total_time"`
-	TotalCorrect int64  `json:"total_correct" gorm:"total_correct"`
+	Rank         int64  `json:"rank" gorm:"column:rank"`
+	UserID       int64  `json:"user_id" gorm:"column:user_id"`
+	UserName     string `json:"user_name" gorm:"column:user_name"`
+	TotalScore   int    `json:"total_score" gorm:"column:total_score"`
+	TotalTime    int64  `json:"total_time" gorm:"column:total_time"`
+	TotalCorrect int64  `json:"total_correct" gorm:"column:total_correct"`
 }
 
 type UserTickets struct {

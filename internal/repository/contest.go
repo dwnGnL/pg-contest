@@ -2,6 +2,8 @@ package repository
 
 import (
 	"errors"
+	"fmt"
+	"gorm.io/gorm"
 
 	"gorm.io/gorm/clause"
 )
@@ -87,6 +89,74 @@ func (r RepoImpl) GetAllContestByUserID(userID int64, pagination *Pagination) (*
 	return pagination, nil
 }
 
+func (r RepoImpl) GetContestFullStatsForUser(contestID, userID int64, currentQuestionOrder int) (contest *Contest, err error) {
+	var (
+		query            = r.db
+		questionPosition int
+		answerPosition   int
+		i, j             int
+		question         Question
+		answer           Answer
+	)
+	if currentQuestionOrder > 0 {
+		query = query.Preload("Questions", "order < ?", currentQuestionOrder)
+	}
+	query = query.Preload("Questions.Answers").Preload("Photos")
+
+	if err = query.Find(&contest, contestID).Error; err != nil {
+		return
+	}
+
+	var userAnswers []UserAnswers
+	err = r.db.Where("contestID = ? AND userID = ?", contestID, userID).Scan(&userAnswers).Error
+	if err != nil {
+		return
+	}
+	for _, userAnswer := range userAnswers {
+		questionPosition = -1
+		answerPosition = -1
+		for i, question = range contest.Questions {
+			if question.ID == userAnswer.QuestionID {
+				questionPosition = i
+				for j, answer = range question.Answers {
+					if answer.ID == userAnswer.AnswerID {
+						answerPosition = j
+						break
+					}
+				}
+				break
+			}
+		}
+		if questionPosition < 0 || answerPosition < 0 {
+			err = errors.New(fmt.Sprintf("Check questionID = %v, answerID = %v availability in contestID = %v", userAnswer.QuestionID, userAnswer.AnswerID, contestID))
+			return
+		}
+		contest.Questions[questionPosition].Answers[answerPosition].ChooseTime = userAnswer.Time
+	}
+	return
+}
+
+func (r RepoImpl) prepareContestStarQuery(contestID, currentQuestionID int64) *gorm.DB {
+	return r.db.Table("user_contests uc").
+		Select("row_number() over () AS rank,"+
+			"uc.user_id AS user_id,"+
+			"uc.user_name AS user_name,"+
+			"COUNT(CASE is_correct WHEN true THEN 1 END ) AS total_correct,"+
+			"SUM(CASE is_correct WHEN true THEN q.score ELSE 0 END) AS total_score,"+
+			"SUM(CASE is_correct WHEN true THEN ua.time ELSE 0 END) AS total_time").
+		Joins("LEFT OUTER JOIN user_answers ua ON uc.user_id = ua.user_id").
+		Joins("LEFT OUTER JOIN answers a ON ua.answer_id = a.id AND ua.question_id = a.question_id AND ua.question_id <> ?", currentQuestionID).
+		Joins("LEFT OUTER JOIN questions q ON q.id = ua.question_id").
+		Where("uc.contest_id = ?", contestID).
+		Group("uc.user_id, uc.user_name").
+		Order("total_score DESC, total_time ASC")
+}
+
+func (r RepoImpl) GetContestStatsForUser(contestID, userID, currentQuestionID int64) (contestStatsResp *ContestStats, err error) {
+	err = r.db.Table("(?) as u", r.prepareContestStarQuery(contestID, currentQuestionID)).Where("u.user_id = ?", userID).Scan(&contestStatsResp).Error
+	return
+}
+
 func (r RepoImpl) GetContestStatsById(contestID, currentQuestionID int64, pagination *Pagination) (*Pagination, error) {
 
 	var totalRows int64
@@ -98,21 +168,11 @@ func (r RepoImpl) GetContestStatsById(contestID, currentQuestionID int64, pagina
 
 	contestStatsResp := new([]ContestStats)
 	//запрос для отображения результатов ВСЕХ пользователей купивших данный конкурс, независимо от факта участия
-	err = r.db.Table("user_contests uc").
-		Select("uc.user_id AS user_id,"+
-			"COUNT(CASE is_correct WHEN true THEN 1 END ) AS total_correct,"+
-			"SUM(CASE is_correct WHEN true THEN q.score ELSE 0 END) AS total_score,"+
-			"SUM(CASE is_correct WHEN true THEN ua.time ELSE 0 END) AS total_time").
-		Joins("LEFT OUTER JOIN user_answers ua ON uc.user_id = ua.user_id").
-		Joins("LEFT OUTER JOIN answers a ON ua.answer_id = a.id AND ua.question_id = a.question_id AND ua.question_id <> ?", currentQuestionID).
-		Joins("LEFT OUTER JOIN questions q ON q.id = ua.question_id").
-		Where("uc.contest_id = ?", contestID).
-		Group("uc.user_id").
-		Order("total_score DESC, total_time ASC").Scopes(Paginate(pagination)).
-		Scan(&contestStatsResp).Error
+	err = r.prepareContestStarQuery(contestID, currentQuestionID).Scopes(Paginate(pagination)).Scan(&contestStatsResp).Error
 	if err != nil {
 		return nil, err
 	}
+
 	pagination.Records = contestStatsResp
 	pagination.TotalRows = totalRows
 	pagination.TotalPages = int(pagination.TotalRows / int64(pagination.Limit))
