@@ -1,8 +1,6 @@
 package service
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"time"
@@ -241,30 +239,30 @@ func (s ServiceImpl) SubmitAnswer(userAnswer *repository.UserAnswers) (err error
 
 func (s ServiceImpl) SubscribeContest(userContest *repository.UserContests, jwtToken string) error {
 	var (
-		header map[string]string
-		res    interface{}
-		err    error
+		// header map[string]string
+		// res    interface{}
+		err error
 	)
 
-	header = map[string]string{"Authorization": jwtToken}
+	// header = map[string]string{"Authorization": jwtToken}
 
 	contest, err := s.repo.ContestAvailability(userContest.ContestID, userContest.UserID)
 	if err != nil {
 		return err
 	}
-	req := struct {
-		Amount float64 `json:"amount"`
-	}{contest.Price}
+	// req := struct {
+	// 	Amount float64 `json:"amount"`
+	// }{contest.Price}
 
-	body, err := json.Marshal(&req)
-	if err != nil {
-		return err
-	}
+	// body, err := json.Marshal(&req)
+	// if err != nil {
+	// 	return err
+	// }
 
 	goerrors.Log().Info("contest:", contest)
-	if err = s.SendRequest("POST", bytes.NewBuffer(body), &res, &header); err != nil {
-		return err
-	}
+	// if err = s.SendRequest("POST", bytes.NewBuffer(body), &res, &header); err != nil {
+	// 	return err
+	// }
 	err = s.repo.SubscribeContest(*contest, userContest.UserID)
 	if err != nil {
 		return err
