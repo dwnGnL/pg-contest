@@ -62,6 +62,9 @@ func (s ServiceImpl) Generate(contestID int64) models.WsResponse {
 	resp.ContestStatus = models.Start
 	resp.CountDown = (totalTime + startTimeUnix) - now
 	resp.TotalStep = len(contest.Questions)
+	if countPassed == resp.TotalStep && resp.CountDown <= 0 {
+		resp.ContestStatus = models.End
+	}
 	if resp.CountDown == 0 {
 		resp.CountDown++
 	}

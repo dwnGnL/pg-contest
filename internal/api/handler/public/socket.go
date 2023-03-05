@@ -126,7 +126,7 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 				goerrors.Log().Error("CalculateTimeForQuestion error")
 				continue
 			}
-			if curTime < 0 || curTime > question.Time {
+			if curTime+1 < 0 || curTime > question.Time {
 				conn.WriteJSON(models.WsResponse{ErrorCode: 1, ErrorMess: "время вышло или не настало еще "}) // any model
 				goerrors.Log().Error("CalculateTimeForQuestion error")
 				continue
