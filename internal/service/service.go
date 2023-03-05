@@ -181,6 +181,14 @@ func (s ServiceImpl) GetContestFullStatsForUser(contestID, userID int64) (*repos
 	if err != nil {
 		return nil, err
 	}
+	cont, err := s.repo.GetContest(contestID)
+	if err != nil {
+		return nil, err
+	}
+	if cont.IsEnd != nil && *cont.IsEnd {
+		currentQuestion.Order = 0
+	}
+
 	contest, err := s.repo.GetContestFullStatsForUser(contestID, userID, currentQuestion.Order)
 	if err != nil {
 		return nil, err
