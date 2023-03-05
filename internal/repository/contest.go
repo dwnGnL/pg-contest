@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"fmt"
+
 	"gorm.io/gorm"
 
 	"gorm.io/gorm/clause"
@@ -144,7 +145,7 @@ func (r RepoImpl) prepareContestStarQuery(contestID, currentQuestionID int64) *g
 			"COUNT(CASE is_correct WHEN true THEN 1 END ) AS total_correct,"+
 			"SUM(CASE is_correct WHEN true THEN q.score ELSE 0 END) AS total_score,"+
 			"SUM(CASE is_correct WHEN true THEN ua.time ELSE 0 END) AS total_time").
-		Joins("LEFT OUTER JOIN user_answers ua ON uc.user_id = ua.user_id").
+		Joins("LEFT OUTER JOIN user_answers ua ON uc.user_id = ua.user_id and ua.contest_id = uc.contest_id").
 		Joins("LEFT OUTER JOIN answers a ON ua.answer_id = a.id AND ua.question_id = a.question_id AND ua.question_id <> ?", currentQuestionID).
 		Joins("LEFT OUTER JOIN questions q ON q.id = ua.question_id").
 		Where("uc.contest_id = ?", contestID).

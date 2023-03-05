@@ -22,7 +22,7 @@ func (s *subscribeSwitcher) ReceiveEvent() {
 	defer func() {
 		s.subscribers.Each(func(_ int, conn *websocket.Conn) {
 			conn.SetWriteDeadline(time.Now().Add(writeWait))
-			conn.WriteMessage(websocket.CloseMessage, []byte{})
+			conn.Close()
 		})
 		s.End = true
 		ticker.Stop()
@@ -40,7 +40,7 @@ func (s *subscribeSwitcher) ReceiveEvent() {
 					goerrors.Log().Warnf("writeJson err:%s", err.Error())
 				}
 				if resp.ContestStatus == models.End {
-					conn.WriteMessage(websocket.CloseMessage, []byte{})
+					conn.Close()
 				}
 			})
 			if resp.ContestStatus == models.End {

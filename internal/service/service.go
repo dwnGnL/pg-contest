@@ -169,6 +169,7 @@ func (s ServiceImpl) GetContestStatsForUser(contestID, userID int64) (*repositor
 	if err != nil {
 		return nil, err
 	}
+
 	contestStats, err := s.repo.GetContestStatsForUser(contestID, userID, currentQuestion.ID)
 	if err != nil {
 		return nil, err
