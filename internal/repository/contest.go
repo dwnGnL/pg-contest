@@ -138,9 +138,21 @@ func (r RepoImpl) GetContestFullStatsForUser(contestID, userID int64, currentQue
 }
 
 func (r RepoImpl) prepareContestStarQuery(contestID, currentQuestionID int64) *gorm.DB {
-	return r.db.Table("user_contests uc").
-		Select("row_number() over () AS rank,"+
-			"uc.user_id AS user_id,"+
+	/*return r.db.Table("user_contests uc").
+	Select("row_number() over () AS rank,"+
+		"uc.user_id AS user_id,"+
+		"uc.user_name AS user_name,"+
+		"COUNT(CASE is_correct WHEN true THEN 1 END ) AS total_correct,"+
+		"SUM(CASE is_correct WHEN true THEN q.score ELSE 0 END) AS total_score,"+
+		"SUM(CASE is_correct WHEN true THEN ua.time ELSE 0 END) AS total_time").
+	Joins("LEFT OUTER JOIN user_answers ua ON uc.user_id = ua.user_id and ua.contest_id = uc.contest_id").
+	Joins("LEFT OUTER JOIN answers a ON ua.answer_id = a.id AND ua.question_id = a.question_id AND ua.question_id <> ?", currentQuestionID).
+	Joins("LEFT OUTER JOIN questions q ON q.id = ua.question_id").
+	Where("uc.contest_id = ?", contestID).
+	Group("uc.user_id, uc.user_name").
+	Order("total_score DESC, total_time ASC")*/
+	query := r.db.Table("user_contests uc").
+		Select("uc.user_id AS user_id,"+
 			"uc.user_name AS user_name,"+
 			"COUNT(CASE is_correct WHEN true THEN 1 END ) AS total_correct,"+
 			"SUM(CASE is_correct WHEN true THEN q.score ELSE 0 END) AS total_score,"+
@@ -151,10 +163,11 @@ func (r RepoImpl) prepareContestStarQuery(contestID, currentQuestionID int64) *g
 		Where("uc.contest_id = ?", contestID).
 		Group("uc.user_id, uc.user_name").
 		Order("total_score DESC, total_time ASC")
+	return r.db.Table("(?) as a", query).Select("row_number() over () AS rank, a.*")
 }
 
 func (r RepoImpl) GetContestStatsForUser(contestID, userID, currentQuestionID int64) (contestStatsResp *ContestStats, err error) {
-	err = r.db.Table("(?) as u", r.prepareContestStarQuery(contestID, currentQuestionID)).Where("u.user_id = ?", userID).Scan(&contestStatsResp).Error
+	err = r.db.Table("(?) as b", r.prepareContestStarQuery(contestID, currentQuestionID)).Where("b.user_id = ?", userID).Scan(&contestStatsResp).Error
 	return
 }
 
@@ -209,12 +222,7 @@ func (r RepoImpl) ChangeContestInfo(contest *Contest) error {
 	return r.db.Updates(&contest).Error
 }
 
-func (r RepoImpl) SubscribeContest(contest Contest, userID int64) (err error) {
-	userContest := UserContests{
-		UserID:    userID,
-		ContestID: contest.ID,
-		Price:     contest.Price,
-	}
+func (r RepoImpl) SubscribeContest(userContest *UserContests) error {
 	return r.db.Create(&userContest).Error
 }
 

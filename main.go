@@ -22,7 +22,7 @@ const (
 var Version = "v0.0.1"
 
 func main() {
-	app := &cli.App{
+	app := &cli.App{ //go run main.go -c ./config_local.yaml start_service
 		Name:  "pg-contests",
 		Usage: "pg-contests backend",
 		Flags: []cli.Flag{

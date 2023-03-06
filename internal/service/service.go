@@ -24,7 +24,7 @@ type repositoryIter interface {
 	GetContestInfo(contestID int64) (*repository.Contest, error)
 	GetUserTikets(userID, tiketID int64) (*repository.UserTickets, error)
 	Migrate() error
-	SubscribeContest(contest repository.Contest, userID int64) error
+	SubscribeContest(userContest *repository.UserContests) error
 	ContestAvailability(contestID int64, userID int64) (*repository.Contest, error)
 	GetUserContest(contestID int64, userID int64) (*repository.UserContests, error)
 	SubmitAnswer(userAnswer *repository.UserAnswers) (err error)
@@ -267,12 +267,12 @@ func (s ServiceImpl) SubscribeContest(userContest *repository.UserContests, jwtT
 	// if err != nil {
 	// 	return err
 	// }
-
+	userContest.Price = contest.Price
 	goerrors.Log().Info("contest:", contest)
 	// if err = s.SendRequest("POST", bytes.NewBuffer(body), &res, &header); err != nil {
 	// 	return err
 	// }
-	err = s.repo.SubscribeContest(*contest, userContest.UserID)
+	err = s.repo.SubscribeContest(userContest)
 	if err != nil {
 		return err
 	}
