@@ -109,7 +109,7 @@ func (r RepoImpl) GetContestFullStatsForUser(contestID, userID int64, currentQue
 	}
 
 	var userAnswers []UserAnswers
-	err = r.db.Table("user_answers").Where("contestID = ? AND userID = ?", contestID, userID).Scan(&userAnswers).Error
+	err = r.db.Table("user_answers").Where("contest_id = ? AND user_id = ?", contestID, userID).Scan(&userAnswers).Error
 	if err != nil {
 		return
 	}
