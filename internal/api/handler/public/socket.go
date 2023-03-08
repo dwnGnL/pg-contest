@@ -13,7 +13,6 @@ import (
 	apiModels "github.com/dwnGnL/pg-contests/internal/api/models"
 	"github.com/dwnGnL/pg-contests/internal/application"
 	"github.com/dwnGnL/pg-contests/lib/goerrors"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -89,11 +88,10 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 		return
 	}
 
-	var group errgroup.Group
 	// чтение
 	conn.SetReadDeadline(time.Now().Add(pongWait))
 	conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-	group.Go(func() error {
+	go func() {
 		for {
 			err := conn.ReadJSON(req)
 			// if errors.Is(err,websocket.ErrBadHandshake)
@@ -145,16 +143,15 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 				continue
 			}
 		}
-		return nil
-	})
+	}()
 
 	// запись
-	group.Go(func() error {
+	go func() {
 		switcher, ok := ws.contestMap.Load(contestID)
 		if ok && !switcher.End {
 			conn.WriteJSON(app.Generate(contestID))
 			switcher.subscribers.Add(conn)
-			return nil
+			return
 		}
 		ch := app.GenerateAndProcessChan(contestID)
 		subscriber := new(subscribers)
@@ -165,10 +162,7 @@ func (ws publicHandler) wsContest(c *gin.Context) {
 		}
 		ws.contestMap.Store(contestID, switcher)
 		go switcher.ReceiveEvent()
-		return nil
-	})
+		return
+	}()
 
-	if err := group.Wait(); err != nil {
-		goerrors.Log().WithError(err).Error("Stopping ws with error")
-	}
 }
